@@ -62,12 +62,20 @@ def create_hashed_ids(ids: list[str]) -> dict[str:str]:
 
 def write_csv(csv_filename: str, hashes_to_real_ids: dict[str:str]) -> None:
     with open(csv_filename, "w+", newline="") as outfile:
-        fieldnames = ["record_id", "hashed_id"]
+        fieldnames = ["record_id", "redcap_event_name", "c2c_id", "hash_id"]
         writer = csv.DictWriter(outfile, fieldnames=fieldnames)
 
         writer.writeheader()
         for h in hashes_to_real_ids:
-            writer.writerow({"record_id": hashed_ids[h], "hashed_id": h})
+            # TODO: still waiting on what the record ID in the REDCap project will be
+            writer.writerow(
+                {
+                    "record_id": "TEMP",
+                    "redcap_event_name": "start_arm_1",
+                    "c2c_id": hashed_ids[h],
+                    "hash_id": h,
+                }
+            )
     return
 
 
@@ -87,4 +95,4 @@ if __name__ == "__main__":
 
     # Build a CSV of "record_id" and "hashed_id" that can be imported to the new REDCap project for this experiment
     write_csv(CSV_FILENAME, hashed_ids)
-    print(f"Wrote '{CSV_FILENAME}'")
+    print(f"\nWrote '{CSV_FILENAME}'")
