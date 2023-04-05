@@ -1,0 +1,10 @@
+{% extends '_base.html' %}
+{% block content %}
+{% if error_message %}
+<div class="alert alert-warning d-flex justify-content-between">
+    {{ error_message }}<a href="{{ url_for('main_blueprint.index') }}"
+        style="text-decoration: none; color: #604f03;font-weight: bolder;">×</a>
+</div>{% endif %}
+
+<p class="pb-1 text-center">Text line 1.</p>
+{% endblock %}
