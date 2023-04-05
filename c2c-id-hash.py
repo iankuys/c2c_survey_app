@@ -1,8 +1,11 @@
+import csv
 import hashlib
 
 import requests
 
 import mindlib
+
+CSV_FILENAME = "c2c_ids_to_hashes.csv"
 
 
 def export_original_c2c_ids(api_token: str, api_url: str) -> list[str]:
@@ -57,6 +60,17 @@ def create_hashed_ids(ids: list[str]) -> dict[str:str]:
     return hashes_to_original_ids
 
 
+def write_csv(csv_filename: str, hashes_to_real_ids: dict[str:str]) -> None:
+    with open(csv_filename, "w+", newline="") as outfile:
+        fieldnames = ["record_id", "hashed_id"]
+        writer = csv.DictWriter(outfile, fieldnames=fieldnames)
+
+        writer.writeheader()
+        for h in hashes_to_real_ids:
+            writer.writerow({"record_id": hashed_ids[h], "hashed_id": h})
+    return
+
+
 if __name__ == "__main__":
     secrets = mindlib.json_to_dict(
         "secrets.json", required_fields={"c2cv3_api_token", "api_url"}
@@ -72,4 +86,5 @@ if __name__ == "__main__":
     # print(hash_one_string("1"))
 
     # Build a CSV of "record_id" and "hashed_id" that can be imported to the new REDCap project for this experiment
-    # TODO
+    write_csv(CSV_FILENAME, hashed_ids)
+    print(f"Wrote '{CSV_FILENAME}'")
