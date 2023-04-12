@@ -1,0 +1,7 @@
+{% extends '_base.html' %}
+{% block content %}
+<div class="alert alert-danger">
+    The file or page you were looking for does not exist.
+</div>
+<p>Please <a href="{{ url_for('main_blueprint.index') }}">return to the Home page</a>.</p>
+{% endblock %}
