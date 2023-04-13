@@ -13,19 +13,18 @@ ERROR_MESSAGES = {"bad_key": "Invalid key."}
 ############ STARTUP ###########
 
 # Use a Blueprint to prepend URL_PREFIX to all applicable pages
-bp = Blueprint(
-    "main_blueprint", __name__, static_folder="static", template_folder="templates"
-)
+bp = Blueprint("main_blueprint", __name__, static_folder="static", template_folder="templates")
 
 ################################
 ############ HELPERS ###########
 
+
 def sanitize_key(key_from_html_string: str) -> str:
-    """Decodes and sanitizes user-provided 'keys' (intended to be hashed C2C IDs).
-    """
+    """Decodes and sanitizes user-provided 'keys' (intended to be hashed C2C IDs)."""
     result = urllib.parse.unquote_plus(key_from_html_string).strip()
     # TODO
     return result
+
 
 ################################
 ########### ENDPOINTS ##########
@@ -34,7 +33,7 @@ def sanitize_key(key_from_html_string: str) -> str:
 
 @bp.route("/", methods=["GET"])
 def index():
-    if ("key" in request.args and len(request.args["key"]) > 0):
+    if "key" in request.args and len(request.args["key"]) > 0:
         hashed_id = sanitize_key(request.args["key"])
         if len(hashed_id) < 1:
             # print("This key failed sanitization:", request.args["key"])
@@ -44,6 +43,7 @@ def index():
 
         return render_template("index.html", key=hashed_id)
     return render_template("index.html")
+
 
 @bp.route("/check", methods=["GET", "POST"])
 def check():
@@ -56,9 +56,11 @@ def check():
         return redirect(url_for("main_blueprint.index", key=user_provided_key), code=301)
     return redirect(url_for("main_blueprint.index"), code=301)
 
+
 @bp.app_errorhandler(404)
 def page_not_found(err):
     return render_template("404.html"), 404
+
 
 ################################
 ################################
