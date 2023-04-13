@@ -6,5 +6,7 @@
         style="text-decoration: none; color: #604f03;font-weight: bolder;">×</a>
 </div>{% endif %}
 
-<p class="pb-1 text-center">Text line 1.</p>
+{% if key %}<p class="pb-1 text-center">Your key is: <b><code>{{ key }}</code></b></p>
+{% else %}<p class="pb-1 text-center">Failed to detect a key.</p>
+{% endif %}
 {% endblock %}
