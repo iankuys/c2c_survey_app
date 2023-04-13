@@ -8,6 +8,8 @@ from flask import Blueprint, Flask, redirect, render_template, request, url_for
 
 URL_PREFIX = "/c2c-retention-dce"
 
+EXPECTED_HASHED_ID_LENGTH = 10
+
 ERROR_MESSAGES = {"bad_key": "Invalid key."}
 
 ################################
@@ -15,6 +17,8 @@ ERROR_MESSAGES = {"bad_key": "Invalid key."}
 
 # Use a Blueprint to prepend URL_PREFIX to all applicable pages
 bp = Blueprint("main_blueprint", __name__, static_folder="static", template_folder="templates")
+
+SUSPICIOUS_CHARS = [";", ":", "&", '"', "'", "`", ">", "<", "{", "}", "|", ".", "%"]
 
 # Starting with any number of alphanumeric characters (and '.', '+', '_', '-')
 #   followed by a single '@'
@@ -30,8 +34,12 @@ EMAIL_REGEX = re.compile(r"^[A-Za-z0-9\.\+_-]+@[A-Za-z0-9\._-]+\.[a-zA-Z]*$")
 def sanitize_key(key_from_html_string: str) -> str:
     """Decodes and sanitizes user-provided 'keys' (intended to be hashed C2C IDs)."""
     result = urllib.parse.unquote_plus(key_from_html_string).strip()
-    # TODO: check for suspicious characters or substrings
-    return result
+    # Hashed IDs MUST be of a pre-specified length - any less or any more means they were hand-crafted.
+    if len(result) == EXPECTED_HASHED_ID_LENGTH and not any(
+        [s in result for s in SUSPICIOUS_CHARS]
+    ):
+        return result
+    return ""
 
 
 def is_valid_email_address(potential_email_address: str) -> bool:
