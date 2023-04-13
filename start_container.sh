@@ -1,5 +1,5 @@
 #!/bin/bash
-app="c2c-dcv"
+app="c2c-retention-dce"
 echo "Stopping ${app}"
 docker stop ${app}
 

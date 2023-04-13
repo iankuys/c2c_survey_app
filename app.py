@@ -3,7 +3,7 @@ from flask import Blueprint, Flask, redirect, render_template, request, url_for
 ################################
 ############ CONFIG ############
 
-URL_PREFIX = "/c2c-dvc"
+URL_PREFIX = "/c2c-retention-dce"
 
 ################################
 ############ STARTUP ###########
@@ -15,7 +15,7 @@ bp = Blueprint(
 
 ################################
 ########### ENDPOINTS ##########
-# http://127.0.0.1:5000/c2c-dvc/
+# http://127.0.0.1:5000/c2c-retention-dce/
 
 
 @bp.route("/", methods=["GET"])
