@@ -1,21 +1,22 @@
 {% extends '_base.html' %}
 {% block content %}
-{% if error_message %}
-<div class="alert alert-warning d-flex justify-content-between">
-    {{ error_message }}<a href="{{ url_for('main_blueprint.index') }}"
-        style="text-decoration: none; color: #604f03;font-weight: bolder;">×</a>
-</div>{% endif %}
 
 <div class="container text-center">
-    {% if key %}<p class="pb-1">Your key is: <b><code>{{ key }}</code></b></p>
-    {% else %}<p class="pb-1">We couldn't automatically detect an access key for this experiment.</p>
+    {% if error_message %}
+    <div class="alert alert-warning d-flex justify-content-between">
+        {{ error_message }}<a href="{{ url_for('main_blueprint.index') }}"
+            style="text-decoration: none; color: #604f03;font-weight: bolder;">×</a>
+    </div>{% endif %}
+
+    {% if key %}<p class="pb-1">Your access key is: <b><code>{{ key }}</code></b></p>
+    {% else %}<p class="pb-1">We couldn't automatically detect an access key.</p>
     <form action="{{ url_for('main_blueprint.check') }}" method="POST">
         <label for="key">If you have your access key, please enter it here.<br />
             Alternatively, you may enter your email address that is currently active with the C2C
             Registry and we will try to obtain your access key for you.</label><br />
         <div class="input-group input-group-lg">
             <input type="text" class="form-control" style="text-align: center;" id="key" name="key"
-                placeholder="Your key or C2C email address">
+                placeholder="Your access key or C2C email address">
         </div>
         <div class="pt-4 d-grid gap-2 col-6 mx-auto">
             <button type="submit" class="btn btn-primary btn-lg" id="submit_button">Submit</button>
