@@ -149,9 +149,11 @@ def write_csv(
 
 
 if __name__ == "__main__":
-    secrets = mindlib.json_to_dict("secrets.json", required_fields={"c2cv3_api_token", "api_url"})
+    secrets = mindlib.json_to_dict(
+        "secrets.json", required_fields={"C2CV3_API_TOKEN", "REDCAP_API_URL"}
+    )
     print("Getting IDs from the C2C REDCap project....")
-    ids = export_original_c2c_ids(secrets["C2CV3_API_TOKEN"], secrets["API_URL"])
+    ids = export_original_c2c_ids(secrets["C2CV3_API_TOKEN"], secrets["REDCAP_API_URL"])
 
     print("\nHashing IDs....")
     hashed_ids = create_hashed_ids(ids, HASHED_ID_LENGTH, HASH_SALT_PREFIX)
