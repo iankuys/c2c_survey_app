@@ -8,7 +8,8 @@
             style="text-decoration: none; color: #604f03;font-weight: bolder;">×</a>
     </div>{% endif %}
 
-    {% if key %}<p class="pb-1">Your access key is: <b><code>{{ key }}</code></b></p>
+    {% if key and c2c_id %}<p class="pb-1">Your access key is: <b><code>{{ key }}</code></b></p>
+    <p class="pb-1">[DEBUG] Your original C2C ID is: <b><code>{{ c2c_id }}</code></b></p>
     {% else %}<p class="pb-1">We couldn't automatically detect an access key.</p>
     <form action="{{ url_for('main_blueprint.check') }}" method="POST">
         <label for="key" class="pb-2">If you have your access key, please enter it here.<br />
