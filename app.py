@@ -20,9 +20,10 @@ EXPECTED_HASHED_ID_LENGTH = 10
 ################################
 ############ STARTUP ###########
 
-ERROR_MESSAGES = {
+BUBBLE_MESSAGES = {
     "bad_key": "Invalid key.",
     "bad_email": "Couldn't get access key from email address.",
+    "email_sent": "Thank you! If your email address was registered with C2C, an email has been sent to you.",
 }
 
 SUSPICIOUS_CHARS = [";", ":", "&", '"', "'", "`", ">", "<", "{", "}", "|", ".", "%"]
@@ -48,7 +49,7 @@ def sanitize_key(key_from_html_string: str) -> str:
 def create_id_mapping(primary_key=HASHED_ID_REDCAP_VARIABLE) -> dict[str:dict]:
     """Default behavior: returns a mapping of hashed C2C IDs to dicts containing the
     new C2C-DCV record ID and their corresponding original C2C ID.
-    The primary key can be overridden to create mappings between other IDs, such as "c2c_id".
+    The primary key can be overridden to create mappings between other IDs in the new REDCap project, such as "c2c_id".
     """
     all_c2c_dcv_id_records = redcap_helpers.export_redcap_report(
         app.config["C2C_DCV_API_TOKEN"],
@@ -64,12 +65,9 @@ def create_id_mapping(primary_key=HASHED_ID_REDCAP_VARIABLE) -> dict[str:dict]:
     return result
 
 
-def lookup_hashed_id_by_email(email_address: str) -> str:
-    """Attempts to obtain a participant's access key for this experiment via their C2C enrollment email.
-    Returns a string containing the access key.
-    Returns an empty string on failure:
-      - the email address isn't registered
-      - the C2C ID doesn't have an access key associated with it.
+def email_user_access_key(email_address: str) -> None:
+    """Sends a reminder email to a user containing their access key for this experiment.
+    Does nothing if their email is not detected in the original C2C project.
     """
     print(f"Checking email {email_address}")
     all_email_c2c_records = redcap_helpers.export_redcap_report(
@@ -77,21 +75,26 @@ def lookup_hashed_id_by_email(email_address: str) -> str:
         app.config["REDCAP_API_URL"],
         app.config["C2CV3_ALL_EMAILS_REPORT_ID"],
     )
-    emails_to_c2c_id = dict()
     for record in all_email_c2c_records:
-        if "start_email" in record and "record_id" in record:
-            emails_to_c2c_id[record["start_email"]] = record["record_id"]
-    if email_address not in emails_to_c2c_id:
-        return ""
+        if (
+            "start_email" in record
+            and "record_id" in record
+            and email_address.lower() == record["start_email"].lower()
+        ):
+            c2c_id = record["record_id"]
 
-    c2c_id = emails_to_c2c_id[email_address]
-    print(f"Got C2C ID from email {email_address}: {c2c_id}")
+            c2c_ids_to_access_keys = create_id_mapping(primary_key="c2c_id")
+            if c2c_id not in c2c_ids_to_access_keys:
+                print(f"C2C ID {c2c_id} doesn't have a hash for this experiment")
+                return
 
-    c2c_ids_to_access_keys = create_id_mapping(primary_key="c2c_id")
-    if c2c_id not in c2c_ids_to_access_keys:
-        return ""
-
-    return c2c_ids_to_access_keys[c2c_id][HASHED_ID_REDCAP_VARIABLE]
+            access_key_to_send = c2c_ids_to_access_keys[c2c_id][HASHED_ID_REDCAP_VARIABLE]
+            # TODO:
+            print(
+                f"SENDING AN EMAIL TO '{record['start_email']}' (C2C ID {c2c_id}) with access key '{access_key_to_send}'"
+            )
+            return
+    return
 
 
 ################################
@@ -101,25 +104,25 @@ def lookup_hashed_id_by_email(email_address: str) -> str:
 
 @bp.route("/", methods=["GET"])
 def index():
-    if "key" in request.args:
-        if len(request.args["key"]) > 0:
-            hashed_id = sanitize_key(request.args["key"])
-            if len(hashed_id) < 1:
-                # print("This key failed sanitization:", request.args["key"])
-                return render_template("index.html", error_message=ERROR_MESSAGES["bad_key"])
+    if "sent_email" in request.args and len(request.args["sent_email"]) > 0:
+        return render_template("index.html", info_message=BUBBLE_MESSAGES["email_sent"])
+    if "key" in request.args and len(request.args["key"]) > 0:
+        hashed_id = sanitize_key(request.args["key"])
+        if len(hashed_id) < 1:
+            # print("This key failed sanitization:", request.args["key"])
+            return render_template("index.html", error_message=BUBBLE_MESSAGES["bad_key"])
 
-            c2c_dcv_id_records = create_id_mapping()
+        c2c_dcv_id_records = create_id_mapping()
 
-            if hashed_id not in c2c_dcv_id_records:
-                return render_template("index.html", error_message=ERROR_MESSAGES["bad_key"])
+        if hashed_id not in c2c_dcv_id_records:
+            return render_template("index.html", error_message=BUBBLE_MESSAGES["bad_key"])
 
-            # Success, start the experiment
-            return render_template(
-                "index.html", key=hashed_id, c2c_id=c2c_dcv_id_records[hashed_id]["c2c_id"]
-            )
-        else:
-            if "by_email" in request.args:
-                return render_template("index.html", error_message=ERROR_MESSAGES["bad_email"])
+        # TODO: If they've already completed the experiment, display a "thank you" message
+
+        # Start the experiment
+        return render_template(
+            "index.html", key=hashed_id, c2c_id=c2c_dcv_id_records[hashed_id]["c2c_id"]
+        )
     return render_template("index.html")
 
 
@@ -130,12 +133,8 @@ def check():
     if "key" in request.form and len(request.form["key"]) > 0:
         user_provided_key = request.form["key"].strip()
         if mindlib.is_valid_email_address(user_provided_key):
-            # User typed in an email address; look up the access key
-            user_provided_key = lookup_hashed_id_by_email(user_provided_key)
-            # Success, send access key to index
-            return redirect(
-                url_for("main_blueprint.index", key=user_provided_key, by_email="1"), code=301
-            )
+            email_user_access_key(user_provided_key)
+            return redirect(url_for("main_blueprint.index", sent_email="1"), code=301)
         # Not a valid email, so try interpreting this as a literal access key
         # Don't have to do any intensive sanitizing or checking here; index() will do that
         # Success, send access key to index
