@@ -23,19 +23,20 @@ HASH_SALT_PREFIX = "retention_dce"
 # 1 char = 16 possible hashes
 # 2 chars = 16*16 = 256 possible hashes
 # 3 chars = 16^3 = 4096 possible hashes, etc...
-HASHED_ID_LENGTH = 10
+HASHED_ID_LENGTH = 12
 
 ################################################################################
 ### Options concerning the NEW REDCap project for this experiment/initiative ###
 
 # REDCap variable name that will contain the hashed ID
-REDCAP_HASHED_ID_VARIABLE = "retention_dce_access_key"
+REDCAP_HASHED_ID_VARIABLE = "proj_pid_813"
 
 # REDCap instrument that contains `REDCAP_HASHED_ID_VARIABLE` (can be found in the project's Codebook)
-REDCAP_INSTRUMENT = "basic_information"
+REDCAP_INSTRUMENT = "projects"
 
 
 def export_original_c2c_ids(api_token: str, api_url: str) -> list[str]:
+    """Returns a list of all record IDs in the main C2C REDCap project."""
     data = {
         "token": api_token,
         "content": "record",
@@ -128,19 +129,17 @@ def write_csv(
         fieldnames = [
             "record_id",
             "redcap_event_name",
-            "c2c_id",
             hashed_id_column_name,
             instrument_completion_variable_name,
         ]
         writer = csv.DictWriter(outfile, fieldnames=fieldnames)
 
         writer.writeheader()
-        for i, hashed_id in enumerate(hashes_to_original_ids, start=1):
+        for hashed_id in hashes_to_original_ids:
             writer.writerow(
                 {
-                    "record_id": i,
-                    "redcap_event_name": "start_arm_1",
-                    "c2c_id": hashes_to_original_ids[hashed_id],
+                    "record_id": hashes_to_original_ids[hashed_id],
+                    "redcap_event_name": "status_arm_1",
                     hashed_id_column_name: hashed_id,
                     instrument_completion_variable_name: redcap_instrument_completion,
                 }

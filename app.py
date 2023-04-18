@@ -15,7 +15,7 @@ URL_PREFIX = "/c2c-retention-dce"
 HASHED_ID_REDCAP_VARIABLE = "retention_dce_access_key"
 
 # Configure this in tandem with c2c-id-hash.HASHED_ID_LENGTH (and the contents of the REDCap project)
-EXPECTED_HASHED_ID_LENGTH = 10
+EXPECTED_HASHED_ID_LENGTH = 12
 
 ################################
 ############ STARTUP ###########
