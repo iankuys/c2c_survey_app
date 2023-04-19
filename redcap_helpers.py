@@ -32,12 +32,8 @@ def export_redcap_report(token: str, url: str, report_id: str | int) -> list[dic
     return result
 
 
-def import_minimal_record(
-    token: str, url: str, record_id: str, id_variable_name: str = "record_id"
-) -> int:
-    """Makes a REDCap API call to import a single record into a project.
-    This new record is intended to only contain the record ID and no actual data.
-    """
+def import_record(token: str, url: str, records: list[dict]) -> int:
+    """Makes a REDCap API call to import a single record into a project."""
     request_params = {
         "token": token,
         "content": "record",
@@ -46,7 +42,7 @@ def import_minimal_record(
         "type": "flat",
         "overwriteBehavior": "normal",
         "forceAutoNumber": "false",
-        "data": f'[{{"{id_variable_name}":"{record_id}"}}]',
+        "data": json.dumps(records),
         "returnContent": "count",
         "returnFormat": "json",
     }
@@ -56,8 +52,8 @@ def import_minimal_record(
     if type(result) == dict:
         if "error" in result:
             raise REDCapError(
-                f"REDCap API returned an error while importing record '{record_id}':\n{result['error']}"
+                f"REDCap API returned an error while importing record(s) '{records}':\n{result['error']}"
             )
         if "count" in result:
-            return result["count"]
+            return int(result["count"])
     return 1

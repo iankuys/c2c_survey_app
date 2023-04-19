@@ -12,7 +12,8 @@ import redcap_helpers
 URL_PREFIX = "/c2c-retention-dce"
 
 # The REDCap variable in this experiment's REDCap project that contains unique hashed C2C IDs
-HASHED_ID_REDCAP_VARIABLE = "retention_dce_access_key"
+HASHED_ID_EXPERIMENT_REDCAP_VAR = "access_key"
+HASHED_ID_C2C_REDCAP_VAR = "proj_pid_813"
 
 # Configure this in tandem with c2c-id-hash.HASHED_ID_LENGTH (and the contents of the REDCap project)
 EXPECTED_HASHED_ID_LENGTH = 12
@@ -46,36 +47,34 @@ def sanitize_key(key_from_html_string: str) -> str:
     return ""
 
 
-def create_id_mapping(primary_key=HASHED_ID_REDCAP_VARIABLE) -> dict[str:dict]:
-    """Default behavior: returns a mapping of hashed C2C IDs to dicts containing the
-    new C2C-DCV record ID and their corresponding original C2C ID.
-    The primary key can be overridden to create mappings between other IDs in the new REDCap project, such as "c2c_id".
+def create_id_mapping(reversed=False) -> dict[str:str]:
+    """Returns a dict mapping hashed C2C IDs to their corresponding original C2C IDs.
+    The report only includes C2C participants that have NOT withdrawn from the C2C study.
     """
-    all_c2c_dcv_id_records = redcap_helpers.export_redcap_report(
-        app.config["C2C_DCV_API_TOKEN"],
+    c2cv3_project_keys = redcap_helpers.export_redcap_report(
+        app.config["C2CV3_API_TOKEN"],
         app.config["REDCAP_API_URL"],
-        app.config["C2C_DCV_TO_ACCESS_KEYS_REPORT_ID"],
+        app.config["C2CV3_TO_ACCESS_KEYS_REPORT_ID"],
     )
-    result = dict()
-    for record in all_c2c_dcv_id_records:
-        if primary_key in record and "redcap_event_name" in record:
-            hashed_id = record.pop(primary_key)
-            del record["redcap_event_name"]
-            result[hashed_id] = record
+    result = {
+        record[HASHED_ID_C2C_REDCAP_VAR]: record["record_id"] for record in c2cv3_project_keys
+    }
+    if reversed:
+        result = {
+            record["record_id"]: record[HASHED_ID_C2C_REDCAP_VAR] for record in c2cv3_project_keys
+        }
     return result
 
 
 def email_user_access_key(email_address: str) -> None:
-    """Sends a reminder email to a user containing their access key for this experiment.
-    Does nothing if their email is not detected in the original C2C project.
-    """
+    """If applicable, sends a reminder email to a user containing their access key for this experiment."""
     print(f"Checking email {email_address}")
-    all_email_c2c_records = redcap_helpers.export_redcap_report(
+    active_c2cv3_emails = redcap_helpers.export_redcap_report(
         app.config["C2CV3_API_TOKEN"],
         app.config["REDCAP_API_URL"],
-        app.config["C2CV3_ALL_EMAILS_REPORT_ID"],
+        app.config["C2CV3_EMAILS_REPORT_ID"],
     )
-    for record in all_email_c2c_records:
+    for record in active_c2cv3_emails:
         if (
             "start_email" in record
             and "record_id" in record
@@ -83,17 +82,18 @@ def email_user_access_key(email_address: str) -> None:
         ):
             c2c_id = record["record_id"]
 
-            c2c_ids_to_access_keys = create_id_mapping(primary_key="c2c_id")
+            c2c_ids_to_access_keys = create_id_mapping(reversed=True)
             if c2c_id not in c2c_ids_to_access_keys:
-                print(f"C2C ID {c2c_id} doesn't have a hash for this experiment")
+                print(f"C2C ID {c2c_id} doesn't have an access key for this experiment")
                 return
 
-            access_key_to_send = c2c_ids_to_access_keys[c2c_id][HASHED_ID_REDCAP_VARIABLE]
-            # TODO:
+            access_key_to_send = c2c_ids_to_access_keys[c2c_id]
+            # TODO: SEND MAIL
             print(
-                f"SENDING AN EMAIL TO '{record['start_email']}' (C2C ID {c2c_id}) with access key '{access_key_to_send}'"
+                f"** SENDING AN EMAIL TO '{record['start_email']}' (C2C ID {c2c_id}) with access key '{access_key_to_send}'"
             )
             return
+    print(f"Email '{email_address}' not found in the list of active C2C participants")
     return
 
 
@@ -105,23 +105,37 @@ def email_user_access_key(email_address: str) -> None:
 @bp.route("/", methods=["GET"])
 def index():
     if "sent_email" in request.args and len(request.args["sent_email"]) > 0:
+        # TODO: create new endpoint so users aren't confused
         return render_template("index.html", info_message=BUBBLE_MESSAGES["email_sent"])
     if "key" in request.args and len(request.args["key"]) > 0:
         hashed_id = sanitize_key(request.args["key"])
         if len(hashed_id) < 1:
-            # print("This key failed sanitization:", request.args["key"])
+            print("This key failed sanitization:", request.args["key"])
             return render_template("index.html", error_message=BUBBLE_MESSAGES["bad_key"])
 
-        c2c_dcv_id_records = create_id_mapping()
+        access_keys_to_c2c_ids = create_id_mapping()
 
-        if hashed_id not in c2c_dcv_id_records:
+        if hashed_id not in access_keys_to_c2c_ids:
+            print(f"Access key '{hashed_id}' not found in the report from C2Cv3")
+            print(
+                "If this key is a legitimate hashed ID, then the user has withdrawn from the C2C study."
+            )
             return render_template("index.html", error_message=BUBBLE_MESSAGES["bad_key"])
 
         # TODO: If they've already completed the experiment, display a "thank you" message
 
-        # Start the experiment
+        # Add the record to the experiment's REDCap project and start the experiment
+        new_record = [
+            {
+                HASHED_ID_EXPERIMENT_REDCAP_VAR: hashed_id,
+                "c2c_id": access_keys_to_c2c_ids[hashed_id],
+            }
+        ]
+        redcap_helpers.import_record(
+            app.config["C2C_DCV_API_TOKEN"], app.config["REDCAP_API_URL"], new_record
+        )
         return render_template(
-            "index.html", key=hashed_id, c2c_id=c2c_dcv_id_records[hashed_id]["c2c_id"]
+            "index.html", key=hashed_id, c2c_id=access_keys_to_c2c_ids[hashed_id]
         )
     return render_template("index.html")
 
