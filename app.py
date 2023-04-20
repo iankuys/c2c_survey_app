@@ -24,7 +24,6 @@ EXPECTED_HASHED_ID_LENGTH = 12
 BUBBLE_MESSAGES = {
     "bad_key": "Invalid key.",
     "bad_email": "Couldn't get access key from email address.",
-    "email_sent": "Thank you! If your email address was registered with C2C, an email has been sent to you.",
 }
 
 SUSPICIOUS_CHARS = [";", ":", "&", '"', "'", "`", ">", "<", "{", "}", "|", ".", "%"]
@@ -37,7 +36,9 @@ bp = Blueprint("main_blueprint", __name__, static_folder="static", template_fold
 
 
 def sanitize_key(key_from_html_string: str) -> str:
-    """Decodes and sanitizes user-provided 'keys' (intended to be hashed C2C IDs)."""
+    """URL-decodes and sanitizes user-provided 'access keys' (intended to be hashed C2C IDs).
+    Returns an empty string if a string fails sanitization.
+    """
     result = urllib.parse.unquote_plus(key_from_html_string).strip()
     # Hashed IDs MUST be of a pre-specified length - anything else is suspicious.
     if len(result) == EXPECTED_HASHED_ID_LENGTH and not any(
@@ -66,9 +67,9 @@ def create_id_mapping(reversed=False) -> dict[str:str]:
     return result
 
 
-def email_user_access_key(email_address: str) -> None:
+def email_user_access_key(user_submitted_email_address: str) -> None:
     """If applicable, sends a reminder email to a user containing their access key for this experiment."""
-    print(f"Checking email {email_address}")
+    print(f"Checking email {user_submitted_email_address}")
     active_c2cv3_emails = redcap_helpers.export_redcap_report(
         app.config["C2CV3_API_TOKEN"],
         app.config["REDCAP_API_URL"],
@@ -78,7 +79,7 @@ def email_user_access_key(email_address: str) -> None:
         if (
             "start_email" in record
             and "record_id" in record
-            and email_address.lower() == record["start_email"].lower()
+            and user_submitted_email_address.lower() == record["start_email"].lower()
         ):
             c2c_id = record["record_id"]
 
@@ -93,7 +94,9 @@ def email_user_access_key(email_address: str) -> None:
                 f"** SENDING AN EMAIL TO '{record['start_email']}' (C2C ID {c2c_id}) with access key '{access_key_to_send}'"
             )
             return
-    print(f"Email '{email_address}' not found in the list of active C2C participants")
+    print(
+        f"Email '{user_submitted_email_address}' not found in the list of active C2C participants"
+    )
     return
 
 
@@ -105,8 +108,7 @@ def email_user_access_key(email_address: str) -> None:
 @bp.route("/", methods=["GET"])
 def index():
     if "sent_email" in request.args and len(request.args["sent_email"]) > 0:
-        # TODO: create new endpoint so users aren't confused
-        return render_template("index.html", info_message=BUBBLE_MESSAGES["email_sent"])
+        return render_template("email_sent.html")
     if "key" in request.args and len(request.args["key"]) > 0:
         hashed_id = sanitize_key(request.args["key"])
         if len(hashed_id) < 1:
@@ -131,6 +133,9 @@ def index():
                 "c2c_id": access_keys_to_c2c_ids[hashed_id],
             }
         ]
+        print(
+            f"Creating experiment record '{hashed_id}' (C2C ID {access_keys_to_c2c_ids[hashed_id]})"
+        )
         redcap_helpers.import_record(
             app.config["C2C_DCV_API_TOKEN"], app.config["REDCAP_API_URL"], new_record
         )
@@ -140,7 +145,7 @@ def index():
     return render_template("index.html")
 
 
-@bp.route("/check", methods=["GET", "POST"])
+@bp.route("/check", methods=["POST"])
 def check():
     # Endpoint that receives data from a user that manually input their key (hashed ID) to an HTML form on "/"
     # Redirect to "/" with that key to check
