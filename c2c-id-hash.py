@@ -7,9 +7,14 @@ import hashlib
 import requests
 
 import mindlib
+import redcap_helpers
 
 # The name of the CSV file that will be written
 CSV_FILENAME = "c2c_hashed_ids.csv"
+
+# If False, hashed IDs of participants that have withdrawn from the study will NOT be written to the CSV
+# Default: False
+INCLUDE_WITHDRAWN_PARTICIPANTS = False
 
 ###########################
 ### Options for hashing ###
@@ -111,8 +116,10 @@ def create_hashed_ids(
 def write_csv(
     csv_filename: str,
     hashes_to_original_ids: dict[str:str],
+    current_ids: set[str],
     hashed_id_column_name: str,
     redcap_instrument: str,
+    include_withdrawn_users: bool,
     redcap_instrument_completion: str = "1",
 ) -> None:
     """Write the CSV to contain the complete mapping of C2C ID to the new hashed IDs."""
@@ -136,14 +143,19 @@ def write_csv(
 
         writer.writeheader()
         for hashed_id in hashes_to_original_ids:
-            writer.writerow(
-                {
-                    "record_id": hashes_to_original_ids[hashed_id],
-                    "redcap_event_name": "status_arm_1",
-                    hashed_id_column_name: hashed_id,
-                    instrument_completion_variable_name: redcap_instrument_completion,
-                }
-            )
+            row_to_write = {
+                "record_id": hashes_to_original_ids[hashed_id],
+                "redcap_event_name": "status_arm_1",
+                hashed_id_column_name: hashed_id,
+                instrument_completion_variable_name: redcap_instrument_completion,
+            }
+            if (
+                not include_withdrawn_users
+                and hashes_to_original_ids[hashed_id] not in current_ids
+            ):
+                # This participant withdrew from the study
+                row_to_write[hashed_id_column_name] = ""
+            writer.writerow(row_to_write)
     return
 
 
@@ -151,13 +163,29 @@ if __name__ == "__main__":
     secrets = mindlib.json_to_dict(
         "secrets.json", required_fields={"C2CV3_API_TOKEN", "REDCAP_API_URL"}
     )
-    print("Getting IDs from the C2C REDCap project....")
-    ids = export_original_c2c_ids(secrets["C2CV3_API_TOKEN"], secrets["REDCAP_API_URL"])
+    print("Getting all IDs from the C2C REDCap project....")
+    all_ids = export_original_c2c_ids(secrets["C2CV3_API_TOKEN"], secrets["REDCAP_API_URL"])
+    print("Getting active IDs from the C2C REDCap project....")
+    current_c2c_ids = {
+        r["record_id"]
+        for r in redcap_helpers.export_redcap_report(
+            secrets["C2CV3_API_TOKEN"],
+            secrets["REDCAP_API_URL"],
+            secrets["C2CV3_EMAILS_REPORT_ID"],
+        )
+    }
 
-    print("\nHashing IDs....")
-    hashed_ids = create_hashed_ids(ids, HASHED_ID_LENGTH, HASH_SALT_PREFIX)
-    print(f"Hashed {len(hashed_ids)}/{len(ids)} IDs ({len(hashed_ids)/len(ids)*100:.2f}%)")
+    print("Hashing IDs....")
+    hashed_ids = create_hashed_ids(all_ids, HASHED_ID_LENGTH, HASH_SALT_PREFIX)
+    print(f"Hashed {len(hashed_ids)}/{len(all_ids)} IDs ({len(hashed_ids)/len(all_ids)*100:.2f}%)")
 
     # Build a CSV of "record_id" and hashed IDs that can be imported to the new REDCap project for this experiment
-    write_csv(CSV_FILENAME, hashed_ids, REDCAP_HASHED_ID_VARIABLE, REDCAP_INSTRUMENT)
+    write_csv(
+        CSV_FILENAME,
+        hashed_ids,
+        current_c2c_ids,
+        REDCAP_HASHED_ID_VARIABLE,
+        REDCAP_INSTRUMENT,
+        INCLUDE_WITHDRAWN_PARTICIPANTS,
+    )
     print(f"\nWrote '{CSV_FILENAME}'")
