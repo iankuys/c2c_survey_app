@@ -3,6 +3,7 @@ import urllib.parse
 
 from flask import Blueprint, Flask, redirect, render_template, request, url_for
 
+import emails
 import mindlib
 import redcap_helpers
 
@@ -67,7 +68,12 @@ def create_id_mapping(reversed=False) -> dict[str:str]:
     return result
 
 
-def email_user_access_key(user_submitted_email_address: str) -> None:
+def email_user_access_key(
+    user_submitted_email_address: str,
+    our_email_server_address: str,
+    our_from_email_address: str,
+    our_from_email_password: str,
+) -> None:
     """If applicable, sends a reminder email to a user containing their access key for this experiment."""
     print(f"Checking email {user_submitted_email_address}")
     active_c2cv3_emails = redcap_helpers.export_redcap_report(
@@ -89,9 +95,12 @@ def email_user_access_key(user_submitted_email_address: str) -> None:
                 return
 
             access_key_to_send = c2c_ids_to_access_keys[c2c_id]
-            # TODO: SEND MAIL
-            print(
-                f"** SENDING AN EMAIL TO '{record['start_email']}' (C2C ID {c2c_id}) with access key '{access_key_to_send}'"
+            emails.send_mail(
+                record["start_email"],
+                access_key_to_send,
+                our_email_server_address,
+                our_from_email_address,
+                our_from_email_password,
             )
             return
     print(
@@ -152,7 +161,12 @@ def check():
     if "key" in request.form and len(request.form["key"]) > 0:
         user_provided_key = request.form["key"].strip()
         if mindlib.is_valid_email_address(user_provided_key):
-            email_user_access_key(user_provided_key)
+            email_user_access_key(
+                user_provided_key,
+                app.config["MIND_SMTP_SERVER_ADDR"],
+                app.config["MIND_C2C_NOREPLY_EMAIL_ADDR"],
+                app.config["MIND_C2C_NOREPLY_EMAIL_PASS"],
+            )
             return redirect(url_for("main_blueprint.index", sent_email="1"), code=301)
         # Not a valid email, so try interpreting this as a literal access key
         # Don't have to do any intensive sanitizing or checking here; index() will do that
