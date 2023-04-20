@@ -155,6 +155,7 @@ def write_csv(
             ):
                 # This participant withdrew from the study
                 row_to_write[hashed_id_column_name] = ""
+                row_to_write[instrument_completion_variable_name] = "0"
             writer.writerow(row_to_write)
     return
 
