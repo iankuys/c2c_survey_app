@@ -16,9 +16,8 @@
     <p class="pb-1">[DEBUG] Your original C2C ID is: <b><code>{{ c2c_id }}</code></b></p>
     {% else %}<p class="pb-1">We couldn't automatically detect an access key.</p>
     <form action="{{ url_for('main_blueprint.check') }}" method="POST">
-        <label for="key" class="pb-2">If you have your access key, please enter it here.<br />
-            Alternatively, you may enter your email address that is currently active with the C2C
-            Registry so we may send you an email containing your access key.</label><br />
+        <label for="key" class="pb-2">If you have your <b>access key</b>, please enter it here.<br />
+            Alternatively, you may enter your <b>email address</b> that is currently active with the C2C Registry so we may send you an email containing your access key.</label>
         <div class="input-group input-group-lg">
             <input type="text" class="form-control" style="text-align: center;" id="key" name="key"
                 placeholder="Your access key or C2C email address">
