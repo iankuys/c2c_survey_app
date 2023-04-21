@@ -14,9 +14,11 @@ URL_PREFIX = "/c2c-retention-dce"
 
 # The REDCap variable in this experiment's REDCap project that contains unique hashed C2C IDs
 HASHED_ID_EXPERIMENT_REDCAP_VAR = "access_key"
+
+# The REDCap variable in the C2Cv3 REDCap project that contains the same hashed IDs
 HASHED_ID_C2C_REDCAP_VAR = "proj_pid_813"
 
-# Configure this in tandem with c2c-id-hash.HASHED_ID_LENGTH (and the contents of the REDCap project)
+# Configure this in tandem with c2c-id-hash.HASHED_ID_LENGTH (confirm w/ the REDCap projects)
 EXPECTED_HASHED_ID_LENGTH = 12
 
 ################################
@@ -160,11 +162,13 @@ def index():
         return render_template(
             "index.html", key=hashed_id, c2c_id=access_keys_to_c2c_ids[hashed_id]
         )
+
     return render_template("index.html")
 
 
-@bp.route("/check", methods=["POST"])
+@bp.route("/check", methods=["GET", "POST"])
 def check():
+    # "GET" request is needed so users can be redirected properly instead of seeing a "request not allowed" error
     # Endpoint that receives data from a user that manually input their key (hashed ID) to an HTML form on "/"
     # Redirect to "/" with that key to check
     if "key" in request.form and len(request.form["key"]) > 0:
@@ -178,9 +182,9 @@ def check():
                 app.config["MAIL_C2C_NOREPLY_PASS"],
             )
             return redirect(url_for("main_blueprint.index", sent_email="1"), code=301)
+
         # Not a valid email, so try interpreting this as a literal access key
         # Don't have to do any intensive sanitizing or checking here; index() will do that
-        # Success, send access key to index
         return redirect(url_for("main_blueprint.index", key=user_provided_key), code=301)
 
     # Don't allow users to visit this endpoint directly
