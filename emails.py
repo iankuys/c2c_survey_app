@@ -1,6 +1,10 @@
 import smtplib
 from email.headerregistry import Address
 from email.message import EmailMessage
+from pathlib import Path
+
+import html2text
+from jinja2 import Template
 
 # SSL port: 465
 # unsecured SMTP connection via TLS port 587
@@ -9,7 +13,7 @@ PORT = 465
 EMAIL_SUBJECT = "Your C2C survey access key"
 
 
-def construct_plaintxt_body(user_email_addr: str, subject: str, key: str) -> str:
+def construct_message_body(user_email_addr: str, subject: str, key: str) -> str:
     message_plaintext = f"""\
 Subject: {subject}
 
@@ -38,33 +42,27 @@ If you have any questions, please contact ???.
     return message_plaintext
 
 
-def construct_html_body(user_email_addr: str, key: str) -> str:
-    result = f"""<!DOCTYPE html>
-<html>
-<body>
-    <h2>************* This is a <b>TEST EMAIL</b> sent to <b>{user_email_addr}</b>. ************* </h2>
-    <p>Hello,</p>
-    <p>This is a reminder email from an Internet survey operated by the UC Irvine Consent-to-Contact (C2C) Registry.</p>
-    <p>Click this link to access the survey - your access key should be automatically accepted:</p>
+def construct_message_contents(user_email_addr: str, subject: str, key: str) -> tuple[str, str]:
+    """Returns a 2-tuple of strings containing content to place in an email.
+    The first element is the message in plain text format; the second element is the message in HTML.
+    """
+    with open(Path(".", "templates", "_reminder_email.html")) as infile:
+        # HTML
+        # Do this first so we can derive the plain text FROM it
+        email_jinja_template = Template(infile.read())
+        data = {"user_email_addr": user_email_addr, "key": key}
+        html_message = email_jinja_template.render(data)
 
-    <p style="text-align: center;"><b><a href="https://go.c2c.uci.edu/c2c-dce?key={key}" target="_blank">https://go.c2c.uci.edu/c2c-dce?key={key}</a></b></p>
-
-    <p>If you receive a "We couldn't automatically detect an access key" error, you can copy+paste the following access key in the box that appears:</p>
-
-    <p style="text-align: center;"><b>{key}</b></p>
-    
-    <p>Thank you for your participation,<br />The UCI C2C Registry<br /><a href="https://c2c.uci.edu/" target="_blank">https://c2c.uci.edu/</a></p>
-    <hr>
-
-    <p>Please do not reply to this email, as this email inbox is not monitored.</p>
-    <p>If you have any questions, please contact ???.</p>
-</body>
-</html>
-"""
-    return result
+        # Plain text
+        parser = html2text.HTML2Text()
+        parser.ignore_emphasis = True
+        parser.ignore_links = True
+        converted_html_message = parser.handle(html_message)
+        plaintext_message = f"Subject: {subject}\n\n{converted_html_message}"
+        return (plaintext_message, html_message)
 
 
-def construct_html_message(
+def construct_message(
     from_addr: str, from_addr_display_name: str, to_addr: str, subject: str, key: str
 ) -> EmailMessage:
     if "@" not in from_addr:
@@ -80,8 +78,7 @@ def construct_html_message(
     )
     message_html["To"] = to_addr
 
-    body_txt = construct_plaintxt_body(to_addr, subject, key)
-    body_html = construct_html_body(to_addr, key)
+    body_txt, body_html = construct_message_contents(to_addr, subject, key)
 
     message_html.set_content(body_txt)
     message_html.add_alternative(body_html, subtype="html")
@@ -114,13 +111,14 @@ def send_mail(
     try:
         with smtplib.SMTP_SSL(our_smtp_server_address, PORT) as smtp_server:
             smtp_server.login(our_email_address, our_email_password)
-            message = construct_html_message(
+            message = construct_message(
                 our_email_address,
                 our_email_display_name,
                 user_email_address,
                 EMAIL_SUBJECT,
                 access_key,
             )
+            print(message)
             smtp_server.send_message(message)
     except Exception as e:
         print(
