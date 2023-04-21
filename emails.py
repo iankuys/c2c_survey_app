@@ -13,38 +13,9 @@ PORT = 465
 EMAIL_SUBJECT = "Your C2C survey access key"
 
 
-def construct_message_body(user_email_addr: str, subject: str, key: str) -> str:
-    message_plaintext = f"""\
-Subject: {subject}
-
-************* This is a TEST EMAIL sent to {user_email_addr}. *************
-
-Hello,
-
-This is a reminder email from an Internet survey operated by the UC Irvine Consent-to-Contact (C2C) Registry.
-
-Click this link to access the survey - your access key should be automatically accepted:
-
-https://go.c2c.uci.edu/c2c-dce?key={key}
-
-If you receive a "We couldn't automatically detect an access key" error, you can copy+paste the following access key in the box that appears:
-
-{key}
-
-Thank you for your participation,
-The UCI C2C Registry
-https://c2c.uci.edu/
-----
-
-Please do not reply to this email, as this email inbox is not monitored.
-If you have any questions, please contact ???.
-"""
-    return message_plaintext
-
-
 def construct_message_contents(user_email_addr: str, subject: str, key: str) -> tuple[str, str]:
     """Returns a 2-tuple of strings containing content to place in an email.
-    The first element is the message in plain text format; the second element is the message in HTML.
+    The first element is the message in plain text and the second element is the message in HTML.
     """
     with open(Path(".", "templates", "_reminder_email.html")) as infile:
         # HTML
@@ -99,7 +70,7 @@ def send_mail(
     # DEBUG:
     # If an "=" appears in the console printout, that's a "soft line break" and it's normal:
     # https://stackoverflow.com/a/15621614 (email clients should handle those)
-    # test_message = construct_html_message(
+    # test_message = construct_message(
     #     our_email_address,
     #     our_email_display_name,
     #     user_email_address,

@@ -172,10 +172,10 @@ def check():
         if mindlib.is_valid_email_address(user_provided_key):
             check_email_addr_and_send_email(
                 user_provided_key,
-                app.config["MIND_SMTP_SERVER_ADDR"],
-                app.config["MIND_C2C_NOREPLY_EMAIL_ADDR"],
-                app.config["MIND_C2C_NOREPLY_EMAIL_DISPLAY_NAME"],
-                app.config["MIND_C2C_NOREPLY_EMAIL_PASS"],
+                app.config["MAIL_SMTP_SERVER_ADDR"],
+                app.config["MAIL_C2C_NOREPLY_ADDR"],
+                app.config["MAIL_C2C_NOREPLY_DISPLAY_NAME"],
+                app.config["MAIL_C2C_NOREPLY_PASS"],
             )
             return redirect(url_for("main_blueprint.index", sent_email="1"), code=301)
         # Not a valid email, so try interpreting this as a literal access key
