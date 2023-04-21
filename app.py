@@ -52,6 +52,7 @@ def sanitize_key(key_from_html_string: str) -> str:
 def create_id_mapping(reversed=False) -> dict[str:str]:
     """Returns a dict mapping hashed C2C IDs to their corresponding original C2C IDs.
     The report only includes C2C participants that have NOT withdrawn from the C2C study.
+    If reversed = True, original C2C IDs will be mapped to their hashed IDs.
     """
     c2cv3_project_keys = redcap_helpers.export_redcap_report(
         app.config["C2CV3_API_TOKEN"],
@@ -68,10 +69,11 @@ def create_id_mapping(reversed=False) -> dict[str:str]:
     return result
 
 
-def email_user_access_key(
+def check_email_addr_and_send_email(
     user_submitted_email_address: str,
     our_email_server_address: str,
     our_from_email_address: str,
+    our_from_email_display_name: str,
     our_from_email_password: str,
 ) -> None:
     """If applicable, sends a reminder email to a user containing their access key for this experiment."""
@@ -87,19 +89,26 @@ def email_user_access_key(
             and "record_id" in record
             and user_submitted_email_address.lower() == record["start_email"].lower()
         ):
+            # User's email matches one found in the report
             c2c_id = record["record_id"]
-
             c2c_ids_to_access_keys = create_id_mapping(reversed=True)
             if c2c_id not in c2c_ids_to_access_keys:
-                print(f"C2C ID {c2c_id} doesn't have an access key for this experiment")
+                print(f"C2C ID {c2c_id} is not active")
                 return
 
             access_key_to_send = c2c_ids_to_access_keys[c2c_id]
+            if len(access_key_to_send) == 0:
+                print(
+                    f"C2C ID {c2c_id} is active, but doesn't have an access key for this experiment"
+                )
+                return
+
             emails.send_mail(
                 record["start_email"],
                 access_key_to_send,
                 our_email_server_address,
                 our_from_email_address,
+                our_from_email_display_name,
                 our_from_email_password,
             )
             return
@@ -161,10 +170,11 @@ def check():
     if "key" in request.form and len(request.form["key"]) > 0:
         user_provided_key = request.form["key"].strip()
         if mindlib.is_valid_email_address(user_provided_key):
-            email_user_access_key(
+            check_email_addr_and_send_email(
                 user_provided_key,
                 app.config["MIND_SMTP_SERVER_ADDR"],
                 app.config["MIND_C2C_NOREPLY_EMAIL_ADDR"],
+                app.config["MIND_C2C_NOREPLY_EMAIL_DISPLAY_NAME"],
                 app.config["MIND_C2C_NOREPLY_EMAIL_PASS"],
             )
             return redirect(url_for("main_blueprint.index", sent_email="1"), code=301)
