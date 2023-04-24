@@ -89,7 +89,7 @@ def send_mail(
                 EMAIL_SUBJECT,
                 access_key,
             )
-            print(message)
+            # print(message)
             smtp_server.send_message(message)
     except Exception as e:
         print(
