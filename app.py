@@ -26,7 +26,8 @@ EXPECTED_HASHED_ID_LENGTH = 12
 
 BUBBLE_MESSAGES = {
     "bad_key": "Invalid key.",
-    "bad_email": "Couldn't get access key from email address.",
+    "missing_key": "Missing access key.",
+    "unknown": "Unknown error.",
 }
 
 SUSPICIOUS_CHARS = [";", ":", "&", '"', "'", "`", ">", "<", "{", "}", "|", ".", "%"]
@@ -127,6 +128,11 @@ def check_email_addr_and_send_email(
 
 @bp.route("/", methods=["GET"])
 def index():
+    if "error_code" in request.args and len(request.args["error_code"]) > 0:
+        error_code = request.args["error_code"]
+        if error_code not in BUBBLE_MESSAGES:
+            error_code = "unknown"
+        return render_template("index.html", error_message=BUBBLE_MESSAGES[error_code])
     if "sent_email" in request.args and len(request.args["sent_email"]) > 0:
         return render_template("email_sent.html")
     if "key" in request.args and len(request.args["key"]) > 0:
@@ -189,6 +195,19 @@ def check():
 
     # Don't allow users to visit this endpoint directly
     return redirect(url_for("main_blueprint.index"), code=301)
+
+
+@bp.route("/survey", methods=["GET"])
+def survey():
+    if "key" in request.args and len(request.args["key"]) > 0:
+        hashed_id = sanitize_key(request.args["key"])
+        if len(hashed_id) < 1:
+            print("This key failed sanitization:", request.args["key"])
+            return redirect(url_for("main_blueprint.index", error_code="bad_key"), code=301)
+        print(f"Survey starting: {hashed_id}")
+        # TODO: pick random videos here and render them
+        return render_template("survey.html")
+    return redirect(url_for("main_blueprint.index", error_code="missing_key"), code=301)
 
 
 @bp.app_errorhandler(404)
