@@ -51,4 +51,11 @@ deactivate
 * The "C2C_DCV" key will be the main key used throughout the app, as its REDCap project is where all of this experiment's data will be stored.
 * "_REPORT_ID" values can be found in the URL when their corresponding reports are accessed in REDCap.
   * Example (the report ID is the group of "#####" characters): `.../redcap_v__.__.__/DataExport/index.php?pid=__&report_id=#####`
-  
+
+## Other info
+
+Participant "access keys" were generated using these parameters:
+* `HASH_SALT_PREFIX = "retention_dce"`
+* `HASHED_ID_LENGTH = 12`
+* `REDCAP_HASHED_ID_VARIABLE = "proj_pid_813"`
+* `REDCAP_INSTRUMENT = "projects"`
