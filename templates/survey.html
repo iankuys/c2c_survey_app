@@ -1,9 +1,17 @@
 {% extends '_base.html' %}
 {% block content %}
 
-<div class="container text-center">
-    <h1>1.</h1>
-    <p>Two videos go here</p>
+<div class="text-center">
+    <div class="container">
+        <div class="row"> 
+            <div class="col" id="videoA">{{ vid_a_position }}</div>
+            <div class="col" id="videoB">{{ vid_b_position }}</div>
+        </div>
+        <div class="py-2 d-grid gap-2 col-6 mx-auto">
+            <button onclick="uploadVideoSelection(this)" type="button" value="{{ vid_a_position }}" class="btn btn-primary" id="selectVideoA" disabled>{{ vid_a_position }}</button>
+            <button onclick="uploadVideoSelection(this)" type="button" value="{{ vid_b_position }}" class="btn btn-primary" id="selectVideoB" disabled>{{ vid_b_position }}</button>
+        </div>
+    </div>
 </div>
 
 {% endblock %}

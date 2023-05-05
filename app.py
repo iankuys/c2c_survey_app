@@ -205,8 +205,9 @@ def survey():
             print("This key failed sanitization:", request.args["key"])
             return redirect(url_for("main_blueprint.index", error_code="bad_key"), code=301)
         print(f"Survey starting: {hashed_id}")
-        # TODO: pick random videos here and render them
-        return render_template("survey.html")
+
+        # TODO: query REDCap for survey progress and send the user the right videos
+        return render_template("survey.html", vid_a_position="1", vid_b_position="2")
     return redirect(url_for("main_blueprint.index", error_code="missing_key"), code=301)
 
 
