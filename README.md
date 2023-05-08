@@ -60,9 +60,9 @@ Participant "access keys" were generated using these parameters:
 * `REDCAP_HASHED_ID_VARIABLE = "proj_pid_813"`
 * `REDCAP_INSTRUMENT = "projects"`
 
-##User Requirements:
+## User Requirements:
 * `Valid C2C email`
-*Particapant can only do the survey once
-*See how many times a video was watched
-*See what device was used - capture user agent
-*Particapant can only vote if both videos have been viewed
+* `Particapant can only do the survey once'
+* `See how many times a video was watched'
+* `See what device was used - capture user agent'
+* `Particapant can only vote if both videos have been viewed'
