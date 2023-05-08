@@ -61,7 +61,7 @@ Participant "access keys" were generated using these parameters:
 * `REDCAP_INSTRUMENT = "projects"`
 
 ##User Requirements:
-*Valid C2C email
+* `Valid C2C email`
 *Particapant can only do the survey once
 *See how many times a video was watched
 *See what device was used - capture user agent
