@@ -197,8 +197,8 @@ def check():
     return redirect(url_for("main_blueprint.index"), code=301)
 
 
-@bp.route("/survey", methods=["GET"])
-def survey():
+@bp.route("/videos", methods=["GET"])
+def videos():
     if "key" in request.args and len(request.args["key"]) > 0:
         hashed_id = sanitize_key(request.args["key"])
         if len(hashed_id) < 1:
@@ -206,8 +206,9 @@ def survey():
             return redirect(url_for("main_blueprint.index", error_code="bad_key"), code=301)
         print(f"Survey starting: {hashed_id}")
 
-        # TODO: query REDCap for survey progress and send the user the right videos
-        return render_template("survey.html", vid_a_position="1", vid_b_position="2")
+        # TODO: query REDCap for key validity and survey progress
+        # TODO: send the user the correct videos for their current progress
+        return render_template("videos.html", vid_a_position="1", vid_b_position="2")
     return redirect(url_for("main_blueprint.index", error_code="missing_key"), code=301)
 
 
