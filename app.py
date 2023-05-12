@@ -289,7 +289,7 @@ async def send_video(key: str | None = None) -> VideoOutPack | dict:
         video_A_id, video_B_id = random.sample(list(VIDEOS.keys()), 2)
 
         print(f"Sending videos '{video_A_id}' and '{video_B_id}' to user '{key}'")
-        vidA = VideoOut(vid_id=video_A_id, url=VIDEOS[video_B_id])
+        vidA = VideoOut(vid_id=video_A_id, url=VIDEOS[video_A_id])
         vidB = VideoOut(vid_id=video_B_id, url=VIDEOS[video_B_id])
         return VideoOutPack(videoA=vidA, videoB=vidB)
     return {"detail": "Not Found"}
