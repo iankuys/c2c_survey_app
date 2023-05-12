@@ -6,6 +6,7 @@ from typing import List
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.wsgi import WSGIMiddleware
+from fastapi.responses import RedirectResponse
 from flask import Flask, redirect, render_template, request, url_for
 from pydantic import BaseModel
 
@@ -292,6 +293,11 @@ async def send_video(key: str | None = None) -> VideoOutPack | dict:
         vidB = VideoOut(vid_id=video_B_id, url=VIDEOS[video_B_id])
         return VideoOutPack(videoA=vidA, videoB=vidB)
     return {"detail": "Not Found"}
+
+
+@app.get("/")
+async def redirect_to_flask():
+    return RedirectResponse("/survey", status_code=302)
 
 
 if __name__ == "__main__":
