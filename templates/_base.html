@@ -4,17 +4,17 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <link rel="stylesheet" href="{{ url_for('main_blueprint.static', filename='bootstrap.min.css') }}">
-    <link rel="icon" type="image/x-icon" href="{{ url_for('main_blueprint.static', filename='cropped-c2c-32x32.jpg') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='bootstrap.min.css') }}">
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='cropped-c2c-32x32.jpg') }}">
     <title>C2C - DCV</title>
 </head>
 
 <body>
     <div class="container-fluid">
-        <h1 class="display-1"><a href="{{ url_for('main_blueprint.index')}}" style="text-decoration: none;">C2C - DCV</a></h1>
+        <h1 class="display-1"><a href="{{ url_for('index')}}" style="text-decoration: none;">C2C - DCV</a></h1>
         <hr>{% block content %} {% endblock %}
     </div>
-    <script src="{{ url_for('main_blueprint.static', filename='bootstrap.bundle.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='bootstrap.bundle.min.js') }}"></script>
     <footer style="text-align: center;">
         <div class="container-fluid">
             <hr>

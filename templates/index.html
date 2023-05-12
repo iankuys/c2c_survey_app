@@ -4,11 +4,11 @@
 <div class="container text-center">
     {% if error_message %}
     <div class="alert alert-warning d-flex justify-content-between">
-        {{ error_message }}<a href="{{ url_for('main_blueprint.index') }}"
+        {{ error_message }}<a href="{{ url_for('index') }}"
             style="text-decoration: none; color: #604f03;font-weight: bolder;">×</a>
     </div>{% endif %}
     {% if info_message %}<div class="alert alert-info d-flex justify-content-between">
-        {{ info_message }}<a href="{{ url_for('main_blueprint.index') }}"
+        {{ info_message }}<a href="{{ url_for('index') }}"
             style="text-decoration: none; color: #294f60;font-weight: bolder;">×</a>
     </div>{% endif %}
 
@@ -17,10 +17,10 @@
     <h2>Disclaimer</h2>
     <p>Disclaimer text goes here</p>
     <div class="pt-4 d-grid gap-2 col-6 mx-auto">
-        <a href="{{ url_for('main_blueprint.videos', key=key) }}" class="btn btn-primary btn-lg">Agree and continue</a>
+        <a href="{{ url_for('videos', key=key) }}" class="btn btn-primary btn-lg">Agree and continue</a>
     </div>
     {% else %}<p class="pb-1">We couldn't automatically detect an access key.</p>
-    <form action="{{ url_for('main_blueprint.check') }}" method="POST">
+    <form action="{{ url_for('check') }}" method="POST">
         <label for="key" class="pb-2">If you have your <b>access key</b>, please enter it here.<br />
             Alternatively, you may enter your <b>email address</b> that is currently active with the C2C Registry so we may send you an email containing your access key.</label>
         <div class="input-group input-group-lg">

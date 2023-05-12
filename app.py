@@ -32,8 +32,10 @@ BUBBLE_MESSAGES = {
 
 SUSPICIOUS_CHARS = [";", ":", "&", '"', "'", "`", ">", "<", "{", "}", "|", ".", "%"]
 
-# Use a Blueprint to prepend URL_PREFIX to all applicable pages
-bp = Blueprint("main_blueprint", __name__, static_folder="static", template_folder="templates")
+flask_app = Flask(__name__)
+flask_app.config["APPLICATION_ROOT"] = URL_PREFIX
+flask_app.config.from_file("secrets.json", load=json.load)  # JSON keys must be in ALL CAPS
+
 
 ################################
 ############ HELPERS ###########
@@ -58,9 +60,9 @@ def create_id_mapping(reversed=False) -> dict[str:str]:
     If reversed = True, original C2C IDs will be mapped to their hashed IDs.
     """
     c2cv3_project_keys = redcap_helpers.export_redcap_report(
-        app.config["C2CV3_API_TOKEN"],
-        app.config["REDCAP_API_URL"],
-        app.config["C2CV3_TO_ACCESS_KEYS_REPORT_ID"],
+        flask_app.config["C2CV3_API_TOKEN"],
+        flask_app.config["REDCAP_API_URL"],
+        flask_app.config["C2CV3_TO_ACCESS_KEYS_REPORT_ID"],
     )
     result = {
         record[HASHED_ID_C2C_REDCAP_VAR]: record["record_id"] for record in c2cv3_project_keys
@@ -82,9 +84,9 @@ def check_email_addr_and_send_email(
     """If applicable, sends a reminder email to a user containing their access key for this experiment."""
     print(f"Checking email {user_submitted_email_address}")
     active_c2cv3_emails = redcap_helpers.export_redcap_report(
-        app.config["C2CV3_API_TOKEN"],
-        app.config["REDCAP_API_URL"],
-        app.config["C2CV3_EMAILS_REPORT_ID"],
+        flask_app.config["C2CV3_API_TOKEN"],
+        flask_app.config["REDCAP_API_URL"],
+        flask_app.config["C2CV3_EMAILS_REPORT_ID"],
     )
     for record in active_c2cv3_emails:
         if (
@@ -126,7 +128,7 @@ def check_email_addr_and_send_email(
 # http://127.0.0.1:5000/c2c-retention-dce/
 
 
-@bp.route("/", methods=["GET"])
+@flask_app.route("/", methods=["GET"])
 def index():
     if "error_code" in request.args and len(request.args["error_code"]) > 0:
         error_code = request.args["error_code"]
@@ -163,7 +165,7 @@ def index():
             f"Creating experiment record '{hashed_id}' (C2C ID {access_keys_to_c2c_ids[hashed_id]})"
         )
         redcap_helpers.import_record(
-            app.config["C2C_DCV_API_TOKEN"], app.config["REDCAP_API_URL"], new_record
+            flask_app.config["C2C_DCV_API_TOKEN"], flask_app.config["REDCAP_API_URL"], new_record
         )
         return render_template(
             "index.html", key=hashed_id, c2c_id=access_keys_to_c2c_ids[hashed_id]
@@ -172,7 +174,7 @@ def index():
     return render_template("index.html")
 
 
-@bp.route("/check", methods=["GET", "POST"])
+@flask_app.route("/check", methods=["GET", "POST"])
 def check():
     # "GET" request is needed so users can be redirected properly instead of seeing a "request not allowed" error
     # Endpoint that receives data from a user that manually input their key (hashed ID) to an HTML form on "/"
@@ -182,37 +184,37 @@ def check():
         if mindlib.is_valid_email_address(user_provided_key):
             check_email_addr_and_send_email(
                 user_provided_key,
-                app.config["MAIL_SMTP_SERVER_ADDR"],
-                app.config["MAIL_C2C_NOREPLY_ADDR"],
-                app.config["MAIL_C2C_NOREPLY_DISPLAY_NAME"],
-                app.config["MAIL_C2C_NOREPLY_PASS"],
+                flask_app.config["MAIL_SMTP_SERVER_ADDR"],
+                flask_app.config["MAIL_C2C_NOREPLY_ADDR"],
+                flask_app.config["MAIL_C2C_NOREPLY_DISPLAY_NAME"],
+                flask_app.config["MAIL_C2C_NOREPLY_PASS"],
             )
-            return redirect(url_for("main_blueprint.index", sent_email="1"), code=301)
+            return redirect(url_for("index", sent_email="1"), code=301)
 
         # Not a valid email, so try interpreting this as a literal access key
         # Don't have to do any intensive sanitizing or checking here; index() will do that
-        return redirect(url_for("main_blueprint.index", key=user_provided_key), code=301)
+        return redirect(url_for("index", key=user_provided_key), code=301)
 
     # Don't allow users to visit this endpoint directly
-    return redirect(url_for("main_blueprint.index"), code=301)
+    return redirect(url_for("index"), code=301)
 
 
-@bp.route("/videos", methods=["GET"])
+@flask_app.route("/videos", methods=["GET"])
 def videos():
     if "key" in request.args and len(request.args["key"]) > 0:
         hashed_id = sanitize_key(request.args["key"])
         if len(hashed_id) < 1:
             print("This key failed sanitization:", request.args["key"])
-            return redirect(url_for("main_blueprint.index", error_code="bad_key"), code=301)
+            return redirect(url_for("index", error_code="bad_key"), code=301)
         print(f"Survey starting: {hashed_id}")
 
         # TODO: query REDCap for key validity and survey progress
         # TODO: send the user the correct videos for their current progress
         return render_template("videos.html", vid_a_position="1", vid_b_position="2")
-    return redirect(url_for("main_blueprint.index", error_code="missing_key"), code=301)
+    return redirect(url_for("index", error_code="missing_key"), code=301)
 
 
-@bp.app_errorhandler(404)
+@flask_app.errorhandler(404)
 def page_not_found(err):
     return render_template("404.html"), 404
 
@@ -220,11 +222,5 @@ def page_not_found(err):
 ################################
 ################################
 
-app = Flask(__name__)
-app.config["APPLICATION_ROOT"] = URL_PREFIX
-app.config.from_file("secrets.json", load=json.load)  # JSON keys must be in ALL CAPS
-app.register_blueprint(bp, url_prefix=URL_PREFIX)
-
-
 if __name__ == "__main__":
-    app.run()
+    flask_app.run()
