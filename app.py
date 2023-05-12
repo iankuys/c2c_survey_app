@@ -1,7 +1,13 @@
 import json
+import random
 import urllib.parse
+from typing import List
 
-from flask import Blueprint, Flask, redirect, render_template, request, url_for
+import uvicorn
+from fastapi import FastAPI
+from fastapi.middleware.wsgi import WSGIMiddleware
+from flask import Flask, redirect, render_template, request, url_for
+from pydantic import BaseModel
 
 import emails
 import mindlib
@@ -20,6 +26,20 @@ HASHED_ID_C2C_REDCAP_VAR = "proj_pid_813"
 
 # Configure this in tandem with c2c-id-hash.HASHED_ID_LENGTH (confirm w/ the REDCap projects)
 EXPECTED_HASHED_ID_LENGTH = 12
+
+# TODO: put this in a file for easier editing
+VIDEOS = {
+    "a0": "https://player.vimeo.com/video/76979871?h=8272103f6e&id=a0",
+    "b1": "https://player.vimeo.com/video/76979871?h=8272103f6e&id=b1",
+    "c2": "https://player.vimeo.com/video/76979871?h=8272103f6e&id=c2",
+    "d3": "https://player.vimeo.com/video/76979871?h=8272103f6e&id=d3",
+    "e4": "https://player.vimeo.com/video/76979871?h=8272103f6e&id=e4",
+    "f5": "https://player.vimeo.com/video/76979871?h=8272103f6e&id=f5",
+    "g6": "https://player.vimeo.com/video/76979871?h=8272103f6e&id=g6",
+    "h7": "https://player.vimeo.com/video/76979871?h=8272103f6e&id=h7",
+    "i8": "https://player.vimeo.com/video/76979871?h=8272103f6e&id=i8",
+    "j9": "https://player.vimeo.com/video/76979871?h=8272103f6e&id=j9",
+}
 
 ################################
 ############ STARTUP ###########
@@ -222,5 +242,57 @@ def page_not_found(err):
 ################################
 ################################
 
+app = FastAPI(openapi_url=None)
+# app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/survey", WSGIMiddleware(flask_app))
+
+
+class VideoIn(BaseModel):
+    """Data about a video that the client selected after finishing both videos"""
+
+    vid_id: str
+    position: int
+    pause_count: int
+    logs: List[dict]
+    user_agent: str
+
+
+class VideoOut(BaseModel):
+    """Data about a video that this server will send to the client"""
+
+    vid_id: str
+    url: str
+
+
+class VideoOutPack(BaseModel):
+    """2 VideoOuts to send to clients as JSON objects"""
+
+    videoA: VideoOut
+    videoB: VideoOut
+
+
+@app.post("/video_selected")
+async def get_video_choice(video_choice: VideoIn, key: str | None = None) -> None:
+    if key:
+        print(
+            f"User '{key}' selected this video:\n\tID '{video_choice.vid_id}'\n\tPosition '{video_choice.position}'\n\t'{video_choice.pause_count}' pauses\n\tUser Agent '{video_choice.user_agent}'\n\tLogs: {video_choice.logs}"
+        )
+    else:
+        print("No access key detected")
+
+
+@app.get("/get_videos")
+async def send_video(key: str | None = None) -> VideoOutPack | dict:
+    if key:
+        # TODO: query REDCap for key validity and the list of available/appropriate video IDs to choose from
+        video_A_id, video_B_id = random.sample(list(VIDEOS.keys()), 2)
+
+        print(f"Sending videos '{video_A_id}' and '{video_B_id}' to user '{key}'")
+        vidA = VideoOut(vid_id=video_A_id, url=VIDEOS[video_B_id])
+        vidB = VideoOut(vid_id=video_B_id, url=VIDEOS[video_B_id])
+        return VideoOutPack(videoA=vidA, videoB=vidB)
+    return {"detail": "Not Found"}
+
+
 if __name__ == "__main__":
-    flask_app.run()
+    uvicorn.run(app)
