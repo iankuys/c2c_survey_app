@@ -3,6 +3,9 @@
 
 <div class="text-center">
     <div class="container">
+        <p><b>Watch both videos below until they are fully completed</b>. A pair of checkmarks will appear below a video when it has ended.<br />Then, <b>select the video you prefer</b> using the selection buttons at the bottom of the page.</p>
+        <p><i>Please refrain from skipping any sections or seeking ahead in the videos.<br />The selection buttons will not activate until both videos have played through from the beginning without any interruptions.</i></p>
+        <p>You may rewind or replay the videos as many times as you like.</p>
         <div class="row">
             <div class="py-3 col">
                 <h2>Video {{ vid_a_position }}</h2>
@@ -16,10 +19,11 @@
             </div>
         </div>
         <div class="py-2 d-grid gap-2 col-6 mx-auto">
+            <h4>Select your preferred video:</h4>
             <button onclick="uploadVideoSelection(this)" type="button" value="{{ vid_a_position }}"
-                class="btn btn-primary" id="selectVideoA" disabled>{{ vid_a_position }}</button>
+                class="btn btn-primary" id="selectVideoA" disabled>Video {{ vid_a_position }}</button>
             <button onclick="uploadVideoSelection(this)" type="button" value="{{ vid_b_position }}"
-                class="btn btn-primary" id="selectVideoB" disabled>{{ vid_b_position }}</button>
+                class="btn btn-primary" id="selectVideoB" disabled>Video {{ vid_b_position }}</button>
         </div>
     </div>
 </div>
