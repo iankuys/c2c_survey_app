@@ -149,11 +149,12 @@ async function setupVideoPlayer() {
         var videoMessageBoxElement = document.getElementById(messageBoxID);
         // console.log(videoMessageBoxElement.innerText);
         vimeoPlayer.on('play', function (data) {
-            // this code is for autopause when the other video is already playing
+            // Automatically pause when the other video is already playing:
             otherVimeoPlayer.getPaused().then(function (paused) {
                 if (paused == false) {
                     otherVimeoPlayer.pause().then(function () {
-                        console.log("Paused the other Vimeo player.");
+                        // console.log("Paused the other Vimeo player.");
+                        videoObj.logs.push(createLogEntry(data, "SWITCHED TO THIS VIDEO", videoObj.position, videoObj.vid_id));
                     });
                 }
             });
@@ -183,8 +184,9 @@ async function setupVideoPlayer() {
             if (positionBeforeSeek < positionAfterSeek) {
                 // Don't allow this view to count as "watched" if the user skips ahead
                 videoObj.logs.push(createLogEntry(data, "SEEKED AHEAD TO", videoObj.position, videoObj.vid_id));
-                console.log(`Video ${videoObj.position} seeked AHEAD - not counting this view`)
+                // console.log(`Video ${videoObj.position} seeked AHEAD`)
                 if (!videoObj.finished) {
+                    console.log(`Video ${videoObj.position} - not counting this view`)
                     videoMessageBoxElement.innerText = "❌ Video not yet finished ❌\nPlease do not skip ahead in the video.";
                 }
                 videoObj.skipped = true;
