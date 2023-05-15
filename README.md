@@ -44,7 +44,7 @@ deactivate
     "MAIL_SMTP_SERVER_ADDR": "mind.uci.edu",
     "MAIL_C2C_NOREPLY_ADDR": "noreply@c2c.uci.edu",
     "MAIL_C2C_NOREPLY_DISPLAY_NAME": "UCI C2C Registry",
-    "MAIL_C2C_NOREPLY_PASS": "(ask your supervisor)",
+    "MAIL_C2C_NOREPLY_PASS": "(ask your supervisor)"
 }
 ```
 * The "C2CV3" keys are used to check/verify users' access keys and emails.
