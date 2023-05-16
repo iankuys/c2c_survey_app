@@ -42,6 +42,7 @@ VIDEOS = {
     "j9": "https://player.vimeo.com/video/76979871?h=8272103f6e&id=j9",
 }
 
+
 ################################
 ############ STARTUP ###########
 
@@ -175,15 +176,32 @@ def index():
 
         # TODO: If they've already completed the experiment, display a "thank you" message
 
+        # Shuffle all video keys, and save the first four from the shuffled list
+        keys = list(VIDEOS.keys())
+        random.shuffle(keys)
+        four_videos = keys[0:4]
+
         # Add the record to the experiment's REDCap project and start the experiment
         new_record = [
             {
                 HASHED_ID_EXPERIMENT_REDCAP_VAR: hashed_id,
                 "c2c_id": access_keys_to_c2c_ids[hashed_id],
-            }
+            },
+            {
+                HASHED_ID_EXPERIMENT_REDCAP_VAR: hashed_id,
+                "redcap_event_name": "screen1_arm_1",
+                "video_a": four_videos[0],
+                "video_b": four_videos[1],
+            },
+            {
+                HASHED_ID_EXPERIMENT_REDCAP_VAR: hashed_id,
+                "redcap_event_name": "screen2_arm_1",
+                "video_a": four_videos[2],
+                "video_b": four_videos[3],
+            },
         ]
         print(
-            f"Creating experiment record '{hashed_id}' (C2C ID {access_keys_to_c2c_ids[hashed_id]})"
+            f"Creating experiment record '{hashed_id}' (C2C ID {access_keys_to_c2c_ids[hashed_id]}) with the following videos: {four_videos}"
         )
         redcap_helpers.import_record(
             flask_app.config["C2C_DCV_API_TOKEN"], flask_app.config["REDCAP_API_URL"], new_record
