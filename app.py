@@ -305,6 +305,7 @@ async def send_video(key: str | None = None) -> VideoOutPack | dict:
     if key:
         # TODO: query REDCap for key validity and the list of available/appropriate video IDs to choose from
         video_A_id, video_B_id = random.sample(list(VIDEOS.keys()), 2)
+        # redcap_helpers.export_video_ids()
 
         print(f"Sending videos '{video_A_id}' and '{video_B_id}' to user '{key}'")
         vidA = VideoOut(vid_id=video_A_id, url=VIDEOS[video_A_id])
