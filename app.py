@@ -1,14 +1,14 @@
 import json
 import random
 import urllib.parse
-from typing import List
+from typing import Any, List
 
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.wsgi import WSGIMiddleware
 from fastapi.responses import RedirectResponse
 from flask import Flask, redirect, render_template, request, url_for
-from pydantic import BaseModel
+from pydantic import BaseModel, BaseSettings
 
 import emails
 import mindlib
@@ -199,6 +199,12 @@ def index():
                 "video_a": four_videos[2],
                 "video_b": four_videos[3],
             },
+            {
+                HASHED_ID_EXPERIMENT_REDCAP_VAR: hashed_id,
+                "redcap_event_name": "screen3_arm_1",
+                "video_a": "UNDEFINED",
+                "video_b": "UNDEFINED",
+            },
         ]
         print(
             f"Creating experiment record '{hashed_id}' (C2C ID {access_keys_to_c2c_ids[hashed_id]}) with the following videos: {four_videos}"
@@ -266,6 +272,40 @@ app = FastAPI(openapi_url=None)
 app.mount("/survey", WSGIMiddleware(flask_app))
 
 
+def json_config_settings_source(settings: BaseSettings) -> dict[str, Any]:
+    return mindlib.json_to_dict("secrets.json")
+
+
+class Settings(BaseSettings):
+    C2CV3_API_TOKEN: str
+    C2CV3_EMAILS_REPORT_ID: str
+    C2CV3_TO_ACCESS_KEYS_REPORT_ID: str
+    C2C_DCV_API_TOKEN: str
+    REDCAP_API_URL: str
+    MAIL_SMTP_SERVER_ADDR: str
+    MAIL_C2C_NOREPLY_ADDR: str
+    MAIL_C2C_NOREPLY_DISPLAY_NAME: str
+    MAIL_C2C_NOREPLY_PASS: str
+
+    class Config:
+        @classmethod
+        def customise_sources(
+            cls,
+            init_settings,
+            env_settings,
+            file_secret_settings,
+        ):
+            return (
+                init_settings,
+                json_config_settings_source,
+                env_settings,
+                file_secret_settings,
+            )
+
+
+fastapi_settings = Settings()
+
+
 class VideoIn(BaseModel):
     """Data about a video that the client selected after finishing both videos"""
 
@@ -296,6 +336,8 @@ async def get_video_choice(video_choice: VideoIn, key: str | None = None) -> Non
         print(
             f"User '{key}' selected this video:\n\tID '{video_choice.vid_id}'\n\tPosition '{video_choice.position}'\n\t'{video_choice.pause_count}' pauses\n\tUser Agent '{video_choice.user_agent}'\n\tLogs: {video_choice.logs}"
         )
+        # TODO: set this screen event's "video_complete" to "2"
+        # AND set the 3rd screen's video A or B to this screen's selection - randomly? or pre-set?
     else:
         print("No access key detected")
 
@@ -303,9 +345,24 @@ async def get_video_choice(video_choice: VideoIn, key: str | None = None) -> Non
 @app.get("/get_videos")
 async def send_video(key: str | None = None) -> VideoOutPack | dict:
     if key:
-        # TODO: query REDCap for key validity and the list of available/appropriate video IDs to choose from
-        video_A_id, video_B_id = random.sample(list(VIDEOS.keys()), 2)
-        # redcap_helpers.export_video_ids()
+        # video_A_id, video_B_id = random.sample(list(VIDEOS.keys()), 2)
+        screens = redcap_helpers.export_video_ids(
+            fastapi_settings.C2C_DCV_API_TOKEN, fastapi_settings.REDCAP_API_URL, recordid=key
+        )
+        if len(screens) == 0:
+            # REDCap API returns an empty list if the record ID (access key) isn't in the project
+            print(f"Access key {key} not found in REDCap")
+            return {"detail": "Not Found"}
+
+        # Get the next 2 video IDs based on REDCap event completion
+        video_A_id = ""
+        video_B_id = ""
+        for screen in screens:
+            this_screen_complete = screen["video_complete"] == "2"
+            if not this_screen_complete:
+                video_A_id = screen["video_a"]
+                video_B_id = screen["video_b"]
+                break
 
         print(f"Sending videos '{video_A_id}' and '{video_B_id}' to user '{key}'")
         vidA = VideoOut(vid_id=video_A_id, url=VIDEOS[video_A_id])
