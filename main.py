@@ -13,7 +13,7 @@ import redcap_helpers
 ################################
 ############ CONFIG ############
 
-URL_PREFIX = "/c2c-retention-dce"
+URL_PREFIX = "c2c-retention-dce"
 
 VIDEOS = mindlib.json_to_dict("videos.json")
 
@@ -23,7 +23,7 @@ VIDEOS = mindlib.json_to_dict("videos.json")
 
 app = FastAPI(openapi_url=None)
 # app.mount("/static", StaticFiles(directory="static"), name="static")
-app.mount("/survey", WSGIMiddleware(flask_site.flask_app))
+app.mount(f"/{URL_PREFIX}/survey", WSGIMiddleware(flask_site.flask_app))
 secrets = mindlib.json_to_dict("secrets.json")
 
 
@@ -51,7 +51,7 @@ class VideoOutPack(BaseModel):
     videoB: VideoOut
 
 
-@app.post("/video_selected")
+@app.post(f"/{URL_PREFIX}/video_selected")
 async def get_video_choice(video_choice: VideoIn, key: str | None = None) -> None:
     if key:
         print(
@@ -63,7 +63,7 @@ async def get_video_choice(video_choice: VideoIn, key: str | None = None) -> Non
         print("No access key detected")
 
 
-@app.get("/get_videos")
+@app.get(f"/{URL_PREFIX}/get_videos")
 async def send_video(key: str | None = None) -> VideoOutPack | dict:
     if key:
         # video_A_id, video_B_id = random.sample(list(VIDEOS.keys()), 2)
@@ -93,8 +93,9 @@ async def send_video(key: str | None = None) -> VideoOutPack | dict:
 
 
 @app.get("/")
+@app.get(f"/{URL_PREFIX}")
 async def redirect_to_flask():
-    return RedirectResponse("/survey", status_code=302)
+    return RedirectResponse(f"/{URL_PREFIX}/survey", status_code=302)
 
 
 if __name__ == "__main__":
