@@ -1,4 +1,5 @@
 let server = "http://127.0.0.1:8000/c2c-retention-dce";
+// let server = "https://studies.mind.uci.edu/c2c-retention-dce";
 
 let videoA;
 let videoB;
