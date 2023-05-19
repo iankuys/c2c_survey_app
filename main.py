@@ -24,40 +24,7 @@ VIDEOS = mindlib.json_to_dict("videos.json")
 app = FastAPI(openapi_url=None)
 # app.mount("/static", StaticFiles(directory="static"), name="static")
 app.mount("/survey", WSGIMiddleware(flask_site.flask_app))
-
-
-def json_config_settings_source(settings: BaseSettings) -> dict[str, Any]:
-    return mindlib.json_to_dict("secrets.json")
-
-
-class Settings(BaseSettings):
-    C2CV3_API_TOKEN: str
-    C2CV3_EMAILS_REPORT_ID: str
-    C2CV3_TO_ACCESS_KEYS_REPORT_ID: str
-    C2C_DCV_API_TOKEN: str
-    REDCAP_API_URL: str
-    MAIL_SMTP_SERVER_ADDR: str
-    MAIL_C2C_NOREPLY_ADDR: str
-    MAIL_C2C_NOREPLY_DISPLAY_NAME: str
-    MAIL_C2C_NOREPLY_PASS: str
-
-    class Config:
-        @classmethod
-        def customise_sources(
-            cls,
-            init_settings,
-            env_settings,
-            file_secret_settings,
-        ):
-            return (
-                init_settings,
-                json_config_settings_source,
-                env_settings,
-                file_secret_settings,
-            )
-
-
-fastapi_settings = Settings()
+secrets = mindlib.json_to_dict("secrets.json")
 
 
 class VideoIn(BaseModel):
@@ -101,7 +68,7 @@ async def send_video(key: str | None = None) -> VideoOutPack | dict:
     if key:
         # video_A_id, video_B_id = random.sample(list(VIDEOS.keys()), 2)
         screens = redcap_helpers.export_video_ids(
-            fastapi_settings.C2C_DCV_API_TOKEN, fastapi_settings.REDCAP_API_URL, recordid=key
+            secrets["C2C_DCV_API_TOKEN"], secrets["REDCAP_API_URL"], recordid=key
         )
         if len(screens) == 0:
             # REDCap API returns an empty list if the record ID (access key) isn't in the project
