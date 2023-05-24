@@ -252,6 +252,13 @@ def videos():
         if len(hashed_id) < 1:
             print("This key failed sanitization:", request.args["key"])
             return redirect(url_for("index", error_code="bad_key"), code=301)
+
+        access_keys_to_c2c_ids = create_id_mapping()
+
+        if hashed_id not in access_keys_to_c2c_ids:
+            print(f"Access key '{hashed_id}' not found in the report from C2Cv3")
+            return redirect(url_for("index", error_code="bad_key"))
+
         print(f"Survey starting: {hashed_id}")
         return render_template("videos.html", vid_a_position="1", vid_b_position="2")
     return redirect(url_for("index", error_code="missing_key"), code=301)
