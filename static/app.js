@@ -1,5 +1,5 @@
-let server = "http://127.0.0.1:8000/c2c-retention-dce";
-//let server = "https://studies.mind.uci.edu/c2c-retention-dce";
+const server = "http://127.0.0.1:8000/c2c-retention-dce";
+//const server = "https://studies.mind.uci.edu/c2c-retention-dce";
 
 let videoPageStartTime = "";
 let videoPageEndTime = "";
@@ -7,26 +7,21 @@ let videoPageEndTime = "";
 let videoA;
 let videoB;
 
-let VIDEO_A_HTML_ID = "videoA";
-let VIDEO_A_SELECT_BUTTON_HTML_ID = "selectVideoA";
-let VIDEO_A_MESSAGE_BOX_HTML_ID = "videoAMessage";
-let VIDEO_B_HTML_ID = "videoB";
-let VIDEO_B_SELECT_BUTTON_HTML_ID = "selectVideoB";
-let VIDEO_B_MESSAGE_BOX_HTML_ID = "videoBMessage";
+const VIDEO_A_HTML_ID = "videoA";
+const VIDEO_A_SELECT_BUTTON_HTML_ID = "selectVideoA";
+const VIDEO_A_MESSAGE_BOX_HTML_ID = "videoAMessage";
+const VIDEO_B_HTML_ID = "videoB";
+const VIDEO_B_SELECT_BUTTON_HTML_ID = "selectVideoB";
+const VIDEO_B_MESSAGE_BOX_HTML_ID = "videoBMessage";
 
-const params = new Proxy(new URLSearchParams(window.location.search), {
+// Number of seconds from the beginning of a video that a user can seek to
+// that counts as "from the beginning" (in case they skipped ahead and need to restart the video)
+const SEEK_BEGINNING_THRESHOLD = 2;
+
+const _params = new Proxy(new URLSearchParams(window.location.search), {
     get: (searchParams, prop) => searchParams.get(prop),
 });
-let access_key = params.key;
-// console.log(`Got access key '${access_key}'`);
-
-// function parentWidth(elem) {
-//     return elem.clientWidth;
-// }
-
-// let parentHeight = (elem) => {
-//     return elem.clientHeight;
-// } 
+const access_key = _params.key;
 
 function parseVimeoResponse(data, attr) {
     // Safely fetches data from a Vimeo player data object
@@ -81,55 +76,48 @@ function getUTCTimestampNow() {
 }
 
 function createLogEntry(vimeo_data, data_label, video_position, video_id) {
-    var UTCTimestamp = getUTCTimestampNow();
+    const UTCTimestamp = getUTCTimestampNow();
 
-    // TODO: clean this UP!
-    if (data_label.includes("VOLUME")) {
-        const logEntry = {
-            position: video_position,
-            vid_id: video_id,
-            timestamp: UTCTimestamp,
-            event_type: data_label,
-            event_data: `${Number(parseVimeoResponse(vimeo_data, "volume") * 100).toFixed(1)}%`
-        };
-        console.log(logEntry);
-        return logEntry;
-    }
-    if (data_label.includes("SPEED")) {
-        const logEntry = {
-            position: video_position,
-            vid_id: video_id,
-            timestamp: UTCTimestamp,
-            event_type: data_label,
-            event_data: `${parseVimeoResponse(vimeo_data, "playbackRate")}x`
-        };
-        console.log(logEntry);
-        return logEntry;
-    }
-
-    // Finishing a video creates a "pause" event
-    // Modify data slightly to change log line accordingly
-    if (parseVimeoResponse(vimeo_data, "seconds") === parseVimeoResponse(vimeo_data, "duration")) {
-        data_label = "FINISHED";
-    }
-
-    var vimeo_seconds = parseVimeoResponse(vimeo_data, "seconds");
-    var vimeo_percent = Number(parseVimeoResponse(vimeo_data, "percent") * 100).toFixed(1);
-
-    const logEntry = {
+    // Base log entry - modify or add to this depending on event type and event data
+    let logEntry = {
         position: video_position,
         vid_id: video_id,
         timestamp: UTCTimestamp,
-        event_type: data_label,
-        event_data: `${vimeo_seconds}sec/${vimeo_percent}%`
-    };
-    // const result = `[${UTCTimestamp}] ${data_label} ${parseVimeoResponse(vimeo_data)}`;
+        event_type: data_label
+    }
+
+    if (data_label.includes("VOLUME")) {
+        let _vimeo_volume = parseVimeoResponse(vimeo_data, "volume");
+        let _vimeo_volume_percent = Number(_vimeo_volume * 100).toFixed(1);
+        logEntry.event_data = `${_vimeo_volume_percent}%`;
+    }
+    else if (data_label.includes("SPEED")) {
+        let _vimeo_playback_rate = parseVimeoResponse(vimeo_data, "playbackRate");
+        logEntry.event_data = `${_vimeo_playback_rate}x`;
+    } else {
+        // Default event type that includes time data (seconds, duration, percent)
+        let _vimeo_seconds = parseVimeoResponse(vimeo_data, "seconds");
+        let _vimeo_duration = parseVimeoResponse(vimeo_data, "duration");
+        let _vimeo_percent = parseVimeoResponse(vimeo_data, "percent");
+        let _vimeo_percent_percent = Number(_vimeo_percent * 100).toFixed(1);
+
+        if (data_label.includes("PLAYED") && _vimeo_seconds === 0 && _vimeo_percent === 0) {
+            logEntry.event_type = "STARTED";
+        }
+        if (data_label.includes("PAUSED") && _vimeo_seconds === _vimeo_duration && _vimeo_percent === 1) {
+            // Finishing a video creates a "pause" event
+            logEntry.event_type = "FINISHED";
+        }
+
+        logEntry.event_data = `${_vimeo_seconds}sec/${_vimeo_percent_percent}%`;
+    }
     console.log(logEntry);
     return logEntry;
 }
 
 async function setupVideoPlayer() {
     let videos = await getVideos();
+    // Videos are initialized with attributes 'vid_id' and 'url' from our server
 
     videoA = videos[0];
     videoA.position = getVideoPositionFromHTML(VIDEO_A_HTML_ID);
@@ -213,7 +201,7 @@ async function setupVideoPlayer() {
             }
             videoObj.playbackPosition = positionAfterSeek;
 
-            if (positionAfterSeek <= 2) {
+            if (positionAfterSeek <= SEEK_BEGINNING_THRESHOLD) {
                 // If a user skips to the beginning, reset skips flag and re-allow this viewing
                 videoObj.logs.push(createLogEntry(data, "SEEKED TO START", videoObj.position, videoObj.vid_id));
                 console.log(`Video ${videoObj.position} (ID ${videoObj.vid_id}): skipped back to the beginning`);
@@ -251,20 +239,27 @@ async function setupVideoPlayer() {
                 if (!videoObj.finished) {
                     videoMessageBoxElement.innerText = "❌ Video not yet finished ❌\nPlease watch the entire video before making a selection.";
                 }
-                // videoObj.skipped = false;
-                // alert("Before making a selection, please finish watching video A from the start.");
-                // videoObj.pauseCount = 0;
             }
             console.log(`Video ${videoObj.position} (ID ${videoObj.vid_id}): ended with ${videoObj.pauseCount} pause(s), watched ${videoObj.watchCount} time(s)`);
             console.log(`Video ${videoObj.position} (ID ${videoObj.vid_id}): any skips? ${videoObj.skipped}`);
         })
+        // videoPlayer.on('progress', (data) => {
+        // //If the player percent is over 0.95, updateProgress to 100% and remove all listeners
+        //     if(data.percent > 0.95) {
+        //         //Manually set the data to 100
+        //         data.percent = 1;
+        //         //Remove the listeners
+        //         videoPlayer.off('pause');
+        //         videoPlayer.off('seeked');
+        //         videoPlayer.off('progress');
+        //         //Update the progress to be 100
+        //         updateProgress(data, 'seeked');
+        //     }
+        // })
     }
     setupEvents(videoAPlayer, videoBPlayer, videoA, VIDEO_A_SELECT_BUTTON_HTML_ID, VIDEO_A_MESSAGE_BOX_HTML_ID);
     setupEvents(videoBPlayer, videoAPlayer, videoB, VIDEO_B_SELECT_BUTTON_HTML_ID, VIDEO_B_MESSAGE_BOX_HTML_ID);
 }
-
-setupVideoPlayer();
-
 
 async function uploadVideoSelection(selectButtonElement) {
     let value = selectButtonElement.value;
@@ -309,16 +304,4 @@ async function uploadVideoSelection(selectButtonElement) {
     }
 }
 
-// videoPlayer.on('progress', (data) => {
-// //If the player percent is over 0.95, updateProgress to 100% and remove all listeners
-//     if(data.percent > 0.95) {
-//         //Manually set the data to 100
-//         data.percent = 1;
-//         //Remove the listeners
-//         videoPlayer.off('pause');
-//         videoPlayer.off('seeked');
-//         videoPlayer.off('progress');
-//         //Update the progress to be 100
-//         updateProgress(data, 'seeked');
-//     }
-// })
+setupVideoPlayer();
