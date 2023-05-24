@@ -17,7 +17,7 @@ def construct_message_contents(user_email_addr: str, subject: str, key: str) -> 
     """Returns a 2-tuple of strings containing content to place in an email.
     The first element is the message in plain text and the second element is the message in HTML.
     """
-    with open(Path(".", "templates", "_reminder_email.html")) as infile:
+    with open(Path(".", "content", "reminder_email.html")) as infile:
         # HTML
         # Do this first so we can derive the plain text FROM it
         email_jinja_template = Template(infile.read())

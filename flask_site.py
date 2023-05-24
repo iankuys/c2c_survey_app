@@ -23,7 +23,7 @@ BUBBLE_MESSAGES = {
     "unknown": "Unknown error.",
 }
 
-VIDEOS = mindlib.json_to_dict("videos.json")
+VIDEOS = mindlib.json_to_dict("./content/videos.json")
 SUSPICIOUS_CHARS = [";", ":", "&", '"', "'", "`", ">", "<", "{", "}", "|", ".", "%"]
 
 

@@ -15,7 +15,7 @@ import redcap_helpers
 
 URL_PREFIX = "c2c-retention-dce"
 
-VIDEOS = mindlib.json_to_dict("videos.json")
+VIDEOS = mindlib.json_to_dict("./content/videos.json")
 
 
 ################################
