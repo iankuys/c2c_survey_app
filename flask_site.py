@@ -146,48 +146,77 @@ def index():
             )
             return render_template("index.html", error_message=BUBBLE_MESSAGES["bad_key"])
 
-        # TODO: If they've already completed the experiment, display a "thank you" message
-
-        # Shuffle all video keys, and save the first four from the shuffled list
-        keys = list(VIDEOS.keys())
-        random.shuffle(keys)
-        four_videos = keys[0:4]
-
-        # Add the record to the experiment's REDCap project and start the experiment
-        new_record = [
-            {
-                HASHED_ID_EXPERIMENT_REDCAP_VAR: hashed_id,
-                "c2c_id": access_keys_to_c2c_ids[hashed_id],
-            },
-            {
-                HASHED_ID_EXPERIMENT_REDCAP_VAR: hashed_id,
-                "redcap_event_name": "screen1_arm_1",
-                "video_a": four_videos[0],
-                "video_b": four_videos[1],
-            },
-            {
-                HASHED_ID_EXPERIMENT_REDCAP_VAR: hashed_id,
-                "redcap_event_name": "screen2_arm_1",
-                "video_a": four_videos[2],
-                "video_b": four_videos[3],
-            },
-            {
-                HASHED_ID_EXPERIMENT_REDCAP_VAR: hashed_id,
-                "redcap_event_name": "screen3_arm_1",
-                "video_a": "UNDEFINED",
-                "video_b": "UNDEFINED",
-            },
-        ]
-        print(
-            f"Creating experiment record '{hashed_id}' (C2C ID {access_keys_to_c2c_ids[hashed_id]}) with the following videos: {four_videos}"
+        existing_dcv_video_data = redcap_helpers.export_dcv_video_data(
+            flask_app.config["C2C_DCV_API_TOKEN"], flask_app.config["REDCAP_API_URL"], hashed_id
         )
-        redcap_helpers.import_record(
-            flask_app.config["C2C_DCV_API_TOKEN"], flask_app.config["REDCAP_API_URL"], new_record
-        )
-        return render_template(
-            "index.html", key=hashed_id, c2c_id=access_keys_to_c2c_ids[hashed_id]
-        )
+        # print(survey_record)
 
+        if len(existing_dcv_video_data) > 0:
+            # The user has generated a set of videos already - they may have finished the survey already
+
+            # TODO: Check the data from `existing_dcv_video_data` to set this bool
+            participant_finished_survey = False
+            if participant_finished_survey:
+                return render_template(
+                    "index.html",
+                    key=hashed_id,
+                    info_message="This survey has already been completed. Thank you for your participation!",
+                )
+
+            # Got video data but the user hasn't finished the survey yet - don't assign any more videos
+            already_assigned_videos = [
+                (r["video_a"], r["video_b"]) for r in existing_dcv_video_data
+            ]
+            print(
+                f"Experiment record '{hashed_id}' (C2C ID {access_keys_to_c2c_ids[hashed_id]}) was already created with videos {already_assigned_videos})"
+            )
+            return render_template(
+                "index.html", key=hashed_id, c2c_id=access_keys_to_c2c_ids[hashed_id]
+            )
+        else:
+            # New survey participant
+            # Shuffle all video keys, and save the first four from the shuffled list
+            keys = list(VIDEOS.keys())
+            random.shuffle(keys)
+            four_videos = keys[0:4]
+
+            # Add the record to the experiment's REDCap project and start the experiment
+            new_record = [
+                {
+                    HASHED_ID_EXPERIMENT_REDCAP_VAR: hashed_id,
+                    "c2c_id": access_keys_to_c2c_ids[hashed_id],
+                },
+                {
+                    HASHED_ID_EXPERIMENT_REDCAP_VAR: hashed_id,
+                    "redcap_event_name": "screen1_arm_1",
+                    "video_a": four_videos[0],
+                    "video_b": four_videos[1],
+                },
+                {
+                    HASHED_ID_EXPERIMENT_REDCAP_VAR: hashed_id,
+                    "redcap_event_name": "screen2_arm_1",
+                    "video_a": four_videos[2],
+                    "video_b": four_videos[3],
+                },
+                # Screen 3 video IDs are determined from the selections of Screens 1 and 2
+                {
+                    HASHED_ID_EXPERIMENT_REDCAP_VAR: hashed_id,
+                    "redcap_event_name": "screen3_arm_1",
+                    "video_a": "UNDEFINED",
+                    "video_b": "UNDEFINED",
+                },
+            ]
+            print(
+                f"Creating NEW experiment record '{hashed_id}' (C2C ID {access_keys_to_c2c_ids[hashed_id]}) with the following videos: {four_videos}"
+            )
+            redcap_helpers.import_record(
+                flask_app.config["C2C_DCV_API_TOKEN"],
+                flask_app.config["REDCAP_API_URL"],
+                new_record,
+            )
+            return render_template(
+                "index.html", key=hashed_id, c2c_id=access_keys_to_c2c_ids[hashed_id]
+            )
     return render_template("index.html")
 
 
@@ -224,9 +253,6 @@ def videos():
             print("This key failed sanitization:", request.args["key"])
             return redirect(url_for("index", error_code="bad_key"), code=301)
         print(f"Survey starting: {hashed_id}")
-
-        # TODO: query REDCap for key validity and survey progress
-        # TODO: send the user the correct videos for their current progress
         return render_template("videos.html", vid_a_position="1", vid_b_position="2")
     return redirect(url_for("index", error_code="missing_key"), code=301)
 

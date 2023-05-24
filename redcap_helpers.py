@@ -92,3 +92,34 @@ def export_video_ids(token: str, url: str, recordid: str) -> list[dict]:
             )
 
     return result
+
+
+def export_dcv_video_data(token: str, url: str, recordid: str) -> list[dict]:
+    """Makes a REDCap API call to retrieve information about all of a survey participant's videos."""
+    request_params = {
+        "token": token,
+        "content": "record",
+        "action": "export",
+        "format": "json",
+        "type": "flat",
+        "csvDelimiter": "",
+        "records[0]": recordid,
+        "events[0]": "screen1_arm_1",
+        "events[1]": "screen2_arm_1",
+        "events[2]": "screen3_arm_1",
+        "rawOrLabel": "raw",
+        "rawOrLabelHeaders": "raw",
+        "exportCheckboxLabel": "false",
+        "exportSurveyFields": "false",
+        "exportDataAccessGroups": "false",
+        "returnFormat": "json",
+    }
+    r = requests.post(url, data=request_params)
+    result = json.loads(r.text)
+    if type(result) == dict:
+        if "error" in result:
+            raise REDCapError(
+                f"REDCap API returned an error while exporting video data for the record: '{recordid}':\n{result['error']}"
+            )
+
+    return result
