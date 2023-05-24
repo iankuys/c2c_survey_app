@@ -1,5 +1,8 @@
 let server = "http://127.0.0.1:8000/c2c-retention-dce";
-// let server = "https://studies.mind.uci.edu/c2c-retention-dce";
+//let server = "https://studies.mind.uci.edu/c2c-retention-dce";
+
+let videoPageStartTime = "";
+let videoPageEndTime = "";
 
 let videoA;
 let videoB;
@@ -64,7 +67,8 @@ async function getVideos() {
     return ([vids.videoA, vids.videoB]);
 }
 
-function createLogEntry(vimeo_data, data_label, video_position, video_id) {
+function getUTCTimestampNow() {
+    // YYYY-MM-DD hh:mm:ss.mis
     const d = new Date();
     let year = String(d.getUTCFullYear()).padStart(4, "0");
     let month = String(d.getUTCMonth() + 1).padStart(2, "0");
@@ -73,7 +77,11 @@ function createLogEntry(vimeo_data, data_label, video_position, video_id) {
     let minutes = String(d.getUTCMinutes()).padStart(2, "0");
     let seconds = String(d.getUTCSeconds()).padStart(2, "0");
     let milliseconds = String(d.getUTCMilliseconds()).padStart(3, "0");
-    var UTCTimestamp = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}.${milliseconds}`;
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}.${milliseconds}`;
+}
+
+function createLogEntry(vimeo_data, data_label, video_position, video_id) {
+    var UTCTimestamp = getUTCTimestampNow();
 
     // TODO: clean this UP!
     if (data_label.includes("VOLUME")) {
@@ -126,8 +134,11 @@ async function setupVideoPlayer() {
     videoA = videos[0];
     videoA.position = getVideoPositionFromHTML(VIDEO_A_HTML_ID);
     videoA.logs = [];
+    videoA.startTimestamp = "";
+    videoA.endTimestamp = "";
     videoA.skipped = false;
     videoA.pauseCount = 0;
+    videoA.watchCount = 0;
     videoA.finished = false;
     videoA.playbackPosition = 0;
     let vid01_vimeo_params = { url: videoA.url };
@@ -136,13 +147,18 @@ async function setupVideoPlayer() {
     videoB = videos[1];
     videoB.position = getVideoPositionFromHTML(VIDEO_B_HTML_ID);
     videoB.logs = [];
+    videoB.startTimestamp = "";
+    videoB.endTimestamp = "";
     videoB.skipped = false;
     videoB.pauseCount = 0;
+    videoB.watchCount = 0;
     videoB.finished = false;
     videoB.playbackPosition = 0;
     let vid02_vimeo_params = { url: videoB.url };
     const videoBPlayer = new Vimeo.Player(VIDEO_B_HTML_ID, vid02_vimeo_params);
 
+    videoPageStartTime = getUTCTimestampNow();
+    console.log(`Survey page started at ${videoPageStartTime}`);
     console.log(`Loaded videos: ${JSON.stringify(videoA)} ${JSON.stringify(videoB)}`);
 
     function setupEvents(vimeoPlayer, otherVimeoPlayer, videoObj, selectionButtonID, messageBoxID) {
@@ -224,23 +240,11 @@ async function setupVideoPlayer() {
             // console.log("Video 01 ENDED");
             // When a video finishes, another pause event is fired, so manually decrement pause count
             videoObj.pauseCount = videoObj.pauseCount - 1;
-            console.log(`Video ${videoObj.position} (ID ${videoObj.vid_id}): ended with ${videoObj.pauseCount} pause(s)`);
-            console.log(`Video ${videoObj.position} (ID ${videoObj.vid_id}): any skips? ${videoObj.skipped}`);
-
-            // const requestOptions = {
-            //     method: "POST",
-            //     headers: {
-            //         "Content-Type": "application/json",
-            //     },
-            //     body: JSON.stringify({ logs: videoObj.logs })
-            // }
-
-            // await fetch(`${server}/video_finished?key=${access_key}`, requestOptions);
-
             if (!videoObj.skipped) {
                 // There were no skips: enable the selection button
                 document.getElementById(selectionButtonID).disabled = false;
                 videoObj.finished = true;
+                videoObj.watchCount = videoObj.watchCount + 1;
                 videoMessageBoxElement.innerText = "✅ Video finished ✅";
             } else {
                 // There were skips
@@ -251,6 +255,8 @@ async function setupVideoPlayer() {
                 // alert("Before making a selection, please finish watching video A from the start.");
                 // videoObj.pauseCount = 0;
             }
+            console.log(`Video ${videoObj.position} (ID ${videoObj.vid_id}): ended with ${videoObj.pauseCount} pause(s), watched ${videoObj.watchCount} time(s)`);
+            console.log(`Video ${videoObj.position} (ID ${videoObj.vid_id}): any skips? ${videoObj.skipped}`);
         })
     }
     setupEvents(videoAPlayer, videoBPlayer, videoA, VIDEO_A_SELECT_BUTTON_HTML_ID, VIDEO_A_MESSAGE_BOX_HTML_ID);
@@ -272,18 +278,27 @@ async function uploadVideoSelection(selectButtonElement) {
         }
         console.log(`User selected video ${selectedVideo.position} - ID ${selectedVideo.vid_id} - ${selectedVideo.pauseCount} pause(s)`);
 
-        // TODO: upload BOTH videos' data to FastAPI on selection
+        videoPageEndTime = getUTCTimestampNow();
+
         const requestOptions = {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
             },
             body: JSON.stringify({
-                position: selectedVideo.position,
-                vid_id: selectedVideo.vid_id,
-                pause_count: selectedVideo.pauseCount,
-                logs: selectedVideo.logs,
-                user_agent: navigator.userAgent
+                user_agent: navigator.userAgent,
+                screen_time_start: videoPageStartTime,
+                vidA_playback_time_start: "(temp A start time)",
+                vidA_playback_time_end: "(temp A end time)",
+                vidA_watch_count: videoA.watchCount,
+                vidA_logs: videoA.logs,
+                vidB_playback_time_start: "(temp B start time)",
+                vidB_playback_time_end: "(temp B end time)",
+                vidB_watch_count: videoB.watchCount,
+                vidB_logs: videoB.logs,
+                selected_vid_id: selectedVideo.vid_id,
+                selected_vid_position: selectedVideo.position,
+                screen_time_end: videoPageEndTime
             })
         }
         const url = `${server}/video_selected?key=${access_key}`;

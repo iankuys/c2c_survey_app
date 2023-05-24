@@ -1,10 +1,10 @@
-from typing import Any, List
+from typing import List
 
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.wsgi import WSGIMiddleware
 from fastapi.responses import RedirectResponse
-from pydantic import BaseModel, BaseSettings
+from pydantic import BaseModel
 
 import flask_site
 import mindlib
@@ -27,14 +27,25 @@ app.mount(f"/{URL_PREFIX}/survey", WSGIMiddleware(flask_site.flask_app))
 secrets = mindlib.json_to_dict("secrets.json")
 
 
-class VideoIn(BaseModel):
-    """Data about a video that the client selected after finishing both videos"""
+class VideoPageIn(BaseModel):
+    """Data about a video page after the participant selected a video"""
 
-    vid_id: str
-    position: int
-    pause_count: int
-    logs: List[dict]
+    screen_time_start: str
     user_agent: str
+
+    vidA_playback_time_start: str
+    vidA_playback_time_end: str
+    vidA_watch_count: int
+    vidA_logs: List[dict]
+
+    vidB_playback_time_start: str
+    vidB_playback_time_end: str
+    vidB_watch_count: int
+    vidB_logs: List[dict]
+
+    selected_vid_id: str
+    selected_vid_position: int
+    screen_time_end: str
 
 
 class VideoOut(BaseModel):
@@ -52,13 +63,30 @@ class VideoOutPack(BaseModel):
 
 
 @app.post(f"/{URL_PREFIX}/video_selected")
-async def get_video_choice(video_choice: VideoIn, key: str | None = None) -> None:
+async def get_video_choice(video_page_data: VideoPageIn, key: str | None = None) -> None:
     if key:
+        print(f"User '{key}' ({video_page_data.user_agent}) finished a survey page")
         print(
-            f"User '{key}' selected this video:\n\tID '{video_choice.vid_id}'\n\tPosition '{video_choice.position}'\n\t'{video_choice.pause_count}' pauses\n\tUser Agent '{video_choice.user_agent}'\n\tLogs: {video_choice.logs}"
+            f"\tSelected video with ID '{video_page_data.selected_vid_id}' @ pos {video_page_data.selected_vid_position}"
         )
-        # TODO: set this screen event's "video_complete" to "2"
-        # AND set the 3rd screen's video A or B to this screen's selection - randomly? or pre-set?
+        print(
+            f"\tPage duration: from {video_page_data.screen_time_start} to {video_page_data.screen_time_end}"
+        )
+        print(f"\tVideo A:")
+        print(
+            f"\t\tWatched from {video_page_data.vidA_playback_time_start} - {video_page_data.vidA_playback_time_end}"
+        )
+        print(f"\t\t{video_page_data.vidA_watch_count} play(s)")
+        print(f"\t\tLogs: {video_page_data.vidA_logs}")
+        print(f"\tVideo B:")
+        print(
+            f"\t\tWatched from {video_page_data.vidB_playback_time_start} - {video_page_data.vidB_playback_time_end}"
+        )
+        print(f"\t\t{video_page_data.vidB_watch_count} play(s)")
+        print(f"\t\tLogs: {video_page_data.vidB_logs}")
+        # TODO: send data to REDCap
+        # + set this screen event's "video_complete" to "2"
+        # + set the 3rd screen's video A or B to this screen's selection - randomly? or pre-set?
     else:
         print("No access key detected")
 
