@@ -1,11 +1,7 @@
+//////// Constants/options ////////
+
 const server = "http://127.0.0.1:8000/c2c-retention-dce";
 //const server = "https://studies.mind.uci.edu/c2c-retention-dce";
-
-let videoPageStartTime = "";
-let videoPageEndTime = "";
-
-let videoA;
-let videoB;
 
 const VIDEO_A_HTML_ID = "videoA";
 const VIDEO_A_SELECT_BUTTON_HTML_ID = "selectVideoA";
@@ -18,10 +14,20 @@ const VIDEO_B_MESSAGE_BOX_HTML_ID = "videoBMessage";
 // that counts as "from the beginning" (in case they skipped ahead and need to restart the video)
 const SEEK_BEGINNING_THRESHOLD = 2;
 
+//// Startup ////
+
+let videoPageStartTime = "";
+let videoPageEndTime = "";
+
+let videoA;
+let videoB;
+
 const _params = new Proxy(new URLSearchParams(window.location.search), {
     get: (searchParams, prop) => searchParams.get(prop),
 });
 const access_key = _params.key;
+
+//// Helpers ////
 
 function parseVimeoResponse(data, attr) {
     // Safely fetches data from a Vimeo player data object
@@ -131,8 +137,10 @@ async function setupVideoPlayer() {
     videoA.watchCount = 0;
     videoA.finished = false;
     videoA.playbackPosition = 0;
-    let vid01_vimeo_params = { url: videoA.url };
-    const videoAPlayer = new Vimeo.Player(VIDEO_A_HTML_ID, vid01_vimeo_params);
+    videoA.selectButtonID = VIDEO_A_SELECT_BUTTON_HTML_ID;
+    videoA.messageBoxID = VIDEO_A_MESSAGE_BOX_HTML_ID;
+    let _vidA_vimeo_params = { url: videoA.url };
+    videoA.player = new Vimeo.Player(VIDEO_A_HTML_ID, _vidA_vimeo_params);
 
     videoB = videos[1];
     videoB.position = getVideoPositionFromHTML(VIDEO_B_HTML_ID);
@@ -144,22 +152,25 @@ async function setupVideoPlayer() {
     videoB.watchCount = 0;
     videoB.finished = false;
     videoB.playbackPosition = 0;
-    let vid02_vimeo_params = { url: videoB.url };
-    const videoBPlayer = new Vimeo.Player(VIDEO_B_HTML_ID, vid02_vimeo_params);
+    videoB.selectButtonID = VIDEO_B_SELECT_BUTTON_HTML_ID;
+    videoB.messageBoxID = VIDEO_B_MESSAGE_BOX_HTML_ID;
+    let _vidB_vimeo_params = { url: videoB.url };
+    videoB.player = new Vimeo.Player(VIDEO_B_HTML_ID, _vidB_vimeo_params);
 
     videoPageStartTime = getUTCTimestampNow();
     console.log(`Survey page started at ${videoPageStartTime}`);
-    console.log(`Loaded videos: ${JSON.stringify(videoA)} ${JSON.stringify(videoB)}`);
+    console.log(`Loaded videos ${videoA.vid_id} (pos ${videoA.position}) and ${videoB.vid_id} (pos ${videoB.position})`);
 
-    function setupEvents(vimeoPlayer, otherVimeoPlayer, videoObj, selectionButtonID, messageBoxID) {
+    function setupEvents(videoObj, otherVideoObj) {
         // https://developer.vimeo.com/player/sdk/reference#events-for-playback-controls
-        var videoMessageBoxElement = document.getElementById(messageBoxID);
-        // console.log(videoMessageBoxElement.innerText);
-        vimeoPlayer.on('play', function (data) {
+        var _videoMessageBoxElement = document.getElementById(videoObj.messageBoxID);
+        var _selectionButtonElement = document.getElementById(videoObj.selectButtonID);
+        // console.log(_videoMessageBoxElement.innerText);
+        videoObj.player.on('play', function (data) {
             // Automatically pause when the other video is already playing:
-            otherVimeoPlayer.getPaused().then(function (paused) {
+            otherVideoObj.player.getPaused().then(function (paused) {
                 if (paused == false) {
-                    otherVimeoPlayer.pause().then(function () {
+                    otherVideoObj.player.pause().then(function () {
                         // console.log("Paused the other Vimeo player.");
                         videoObj.logs.push(createLogEntry(data, "SWITCHED TO THIS VIDEO", videoObj.position, videoObj.vid_id));
                     });
@@ -168,23 +179,23 @@ async function setupVideoPlayer() {
             videoObj.logs.push(createLogEntry(data, "PLAYED AT", videoObj.position, videoObj.vid_id));
             videoObj.playbackPosition = parseVimeoResponse(data, "seconds");
         })
-        vimeoPlayer.on('pause', function (data) {
+        videoObj.player.on('pause', function (data) {
             videoObj.pauseCount = videoObj.pauseCount + 1;
             videoObj.logs.push(createLogEntry(data, "PAUSED AT", videoObj.position, videoObj.vid_id));
         })
-        vimeoPlayer.on('volumechange', function (data) {
+        videoObj.player.on('volumechange', function (data) {
             // NOTE: Some devices don't support the ability to set the volume of the video independently of
             // the system volume, so this event never fires on those devices.
             // glitch with Vimeo API: toggling mute (clicking the volume icon) always returns "1" (the maximum)
             // instead of "0" when mute is activated
             videoObj.logs.push(createLogEntry(data, "VOLUME CHANGED TO", videoObj.position, videoObj.vid_id));
         })
-        vimeoPlayer.on('playbackratechange', function (data) {
+        videoObj.player.on('playbackratechange', function (data) {
             // NOTE: If the creator of the video has disabled the ability of the viewer to change the playback
             // rate, this event doesn't fire.
             videoObj.logs.push(createLogEntry(data, "VIDEO SPEED CHANGED TO", videoObj.position, videoObj.vid_id));
         })
-        vimeoPlayer.on('seeked', function (data) {
+        videoObj.player.on('seeked', function (data) {
             let positionBeforeSeek = videoObj.playbackPosition;
             let positionAfterSeek = parseVimeoResponse(data, "seconds");
             // console.log(`Video ${videoObj.position} (ID ${videoObj.vid_id}): playback position BEFORE seek: ${positionBeforeSeek}`)
@@ -194,7 +205,7 @@ async function setupVideoPlayer() {
                 // console.log(`Video ${videoObj.position} seeked AHEAD`)
                 if (!videoObj.finished) {
                     console.log(`Video ${videoObj.position} - not counting this view`)
-                    videoMessageBoxElement.innerText = "❌ Video not yet finished ❌\nPlease do not skip ahead in the video.";
+                    _videoMessageBoxElement.innerText = "❌ Video not yet finished ❌\nPlease do not skip ahead in the video.";
                 }
                 videoObj.skipped = true;
             } else if (positionBeforeSeek >= positionAfterSeek) {
@@ -209,11 +220,11 @@ async function setupVideoPlayer() {
                 console.log(`Video ${videoObj.position} (ID ${videoObj.vid_id}): skipped back to the beginning`);
                 videoObj.skipped = false;
                 if (!videoObj.finished) {
-                    videoMessageBoxElement.innerText = "❌ Video not yet finished ❌";
+                    _videoMessageBoxElement.innerText = "❌ Video not yet finished ❌";
                 }
             }
         })
-        vimeoPlayer.on('timeupdate', function (data) {
+        videoObj.player.on('timeupdate', function (data) {
             // Used to get the most recent playback position before a "seek" event is fired
             let currentTime = parseVimeoResponse(data, "seconds");
             if (currentTime - 1 < videoObj.playbackPosition && currentTime > videoObj.playbackPosition) {
@@ -226,20 +237,20 @@ async function setupVideoPlayer() {
                 // console.log(`Video ${videoObj.position} playback position: ${videoObj.playbackPosition}`)
             }
         })
-        vimeoPlayer.on('ended', async function () {
+        videoObj.player.on('ended', async function () {
             // console.log("Video 01 ENDED");
-            // When a video finishes, another pause event is fired, so manually decrement pause count
+            // When a video finishes, a pause event is fired, so manually decrement pause count
             videoObj.pauseCount = videoObj.pauseCount - 1;
             if (!videoObj.skipped) {
                 // There were no skips: enable the selection button
-                document.getElementById(selectionButtonID).disabled = false;
                 videoObj.finished = true;
                 videoObj.watchCount = videoObj.watchCount + 1;
-                videoMessageBoxElement.innerText = "✅ Video finished ✅";
+                _videoMessageBoxElement.innerText = "✅ Video finished ✅";
+                _selectionButtonElement.disabled = false;
             } else {
                 // There were skips
                 if (!videoObj.finished) {
-                    videoMessageBoxElement.innerText = "❌ Video not yet finished ❌\nPlease watch the entire video before making a selection.";
+                    _videoMessageBoxElement.innerText = "❌ Video not yet finished ❌\nPlease watch the entire video before making a selection.";
                 }
             }
             console.log(`Video ${videoObj.position} (ID ${videoObj.vid_id}): ended with ${videoObj.pauseCount} pause(s), watched ${videoObj.watchCount} time(s)`);
@@ -259,8 +270,8 @@ async function setupVideoPlayer() {
         //     }
         // })
     }
-    setupEvents(videoAPlayer, videoBPlayer, videoA, VIDEO_A_SELECT_BUTTON_HTML_ID, VIDEO_A_MESSAGE_BOX_HTML_ID);
-    setupEvents(videoBPlayer, videoAPlayer, videoB, VIDEO_B_SELECT_BUTTON_HTML_ID, VIDEO_B_MESSAGE_BOX_HTML_ID);
+    setupEvents(videoA, otherVideoObj = videoB);
+    setupEvents(videoB, otherVideoObj = videoA);
 }
 
 async function uploadVideoSelection(selectButtonElement) {
@@ -305,5 +316,7 @@ async function uploadVideoSelection(selectButtonElement) {
         alert("Please finish watching all videos before making a selection.");
     }
 }
+
+////////
 
 setupVideoPlayer();
