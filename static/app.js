@@ -59,7 +59,9 @@ async function getVideos() {
     const url = `${server}/get_videos?key=${access_key}`;
     const response = await fetch(url);
     const vids = await response.json(); // is await necessary here?
-    return ([vids.videoA, vids.videoB]);
+    vA = { vid_id: vids.vidA_id, url: vids.vidA_url };
+    vB = { vid_id: vids.vidB_id, url: vids.vidB_url };
+    return ([vA, vB]);
 }
 
 function getUTCTimestampNow() {
@@ -117,7 +119,7 @@ function createLogEntry(vimeo_data, data_label, video_position, video_id) {
 
 async function setupVideoPlayer() {
     let videos = await getVideos();
-    // Videos are initialized with attributes 'vid_id' and 'url' from our server
+    // Videos are initialized with attributes 'vid_id' and 'url' in getVideos()
 
     videoA = videos[0];
     videoA.position = getVideoPositionFromHTML(VIDEO_A_HTML_ID);

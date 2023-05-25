@@ -22,13 +22,12 @@ VIDEOS = mindlib.json_to_dict("./content/videos.json")
 ################################
 
 app = FastAPI(openapi_url=None)
-# app.mount("/static", StaticFiles(directory="static"), name="static")
 app.mount(f"/{URL_PREFIX}/survey", WSGIMiddleware(flask_site.flask_app))
 secrets = mindlib.json_to_dict("secrets.json")
 
 
 class VideoPageIn(BaseModel):
-    """Data about a video page after the participant selected a video"""
+    """Data about a video page after the participant selected a video."""
 
     screen_time_start: str
     user_agent: str
@@ -48,18 +47,13 @@ class VideoPageIn(BaseModel):
     screen_time_end: str
 
 
-class VideoOut(BaseModel):
-    """Data about a video that this server will send to the client"""
+class VideosOut(BaseModel):
+    """Data about 2 videos to send to participants."""
 
-    vid_id: str
-    url: str
-
-
-class VideoOutPack(BaseModel):
-    """2 VideoOuts to send to clients as JSON objects"""
-
-    videoA: VideoOut
-    videoB: VideoOut
+    vidA_id: str
+    vidA_url: str
+    vidB_id: str
+    vidB_url: str
 
 
 @app.post(f"/{URL_PREFIX}/video_selected")
@@ -92,7 +86,7 @@ async def get_video_choice(video_page_data: VideoPageIn, key: str | None = None)
 
 
 @app.get(f"/{URL_PREFIX}/get_videos")
-async def send_video(key: str | None = None) -> VideoOutPack | dict:
+async def send_video(key: str | None = None) -> VideosOut | dict:
     if key:
         # video_A_id, video_B_id = random.sample(list(VIDEOS.keys()), 2)
         screens = redcap_helpers.export_video_ids(
@@ -114,9 +108,12 @@ async def send_video(key: str | None = None) -> VideoOutPack | dict:
                 break
 
         print(f"Sending videos '{video_A_id}' and '{video_B_id}' to user '{key}'")
-        vidA = VideoOut(vid_id=video_A_id, url=VIDEOS[video_A_id])
-        vidB = VideoOut(vid_id=video_B_id, url=VIDEOS[video_B_id])
-        return VideoOutPack(videoA=vidA, videoB=vidB)
+        return VideosOut(
+            vidA_id=video_A_id,
+            vidA_url=VIDEOS[video_A_id],
+            vidB_id=video_B_id,
+            vidB_url=VIDEOS[video_B_id],
+        )
     return {"detail": "Not Found"}
 
 
