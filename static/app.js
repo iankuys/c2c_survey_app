@@ -10,6 +10,7 @@ const VIDEO_A_MESSAGE_BOX_HTML_ID = "videoAMessage";
 const VIDEO_B_HTML_ID = "videoB";
 const VIDEO_B_SELECT_BUTTON_HTML_ID = "selectVideoB";
 const VIDEO_B_MESSAGE_BOX_HTML_ID = "videoBMessage";
+const VIDEO_SUBMIT_BUTTON_HTML_ID = "submitVideoSelection";
 
 // Number of seconds from the beginning of a video that a user can seek to
 // that counts as "from the beginning" (in case they skipped ahead and need to restart the video)
@@ -160,6 +161,7 @@ async function setupVideoPlayer() {
         // https://developer.vimeo.com/player/sdk/reference#events-for-playback-controls
         var _videoMessageBoxElement = document.getElementById(videoObj.messageBoxID);
         var _selectionButtonElement = document.getElementById(videoObj.selectButtonID);
+        var _otherSelectionButtonElement = document.getElementById(otherVideoObj.selectButtonID);
         // console.log(_videoMessageBoxElement.innerText);
         videoObj.player.on('play', function (data) {
             // Automatically pause when the other video is already playing:
@@ -241,12 +243,19 @@ async function setupVideoPlayer() {
                 videoObj.finished = true;
                 videoObj.watchCount = videoObj.watchCount + 1;
                 _videoMessageBoxElement.innerText = "✅ Video finished ✅";
-                _selectionButtonElement.disabled = false;
             } else {
                 // There were skips
                 if (!videoObj.finished) {
                     _videoMessageBoxElement.innerText = "❌ Video not yet finished ❌\nPlease watch the entire video before making a selection.";
                 }
+            }
+
+            // disable buttons when both videos are finished
+            if (videoObj.finished && otherVideoObj.finished) {
+                // There were no skips in both videos: enable the selection button 
+                _selectionButtonElement.disabled = false;
+                _otherSelectionButtonElement.disabled = false;
+                document.getElementById(VIDEO_SUBMIT_BUTTON_HTML_ID).disabled = false;
             }
             console.log(`Video ${videoObj.position} (ID ${videoObj.vid_id}): ended with ${videoObj.pauseCount} pause(s), watched ${videoObj.watchCount} time(s)`);
             console.log(`Video ${videoObj.position} (ID ${videoObj.vid_id}): any skips? ${videoObj.skipped}`);
@@ -269,12 +278,19 @@ async function setupVideoPlayer() {
     setupPlayerEvents(videoB, otherVideoObj = videoA);
 }
 
-async function uploadVideoSelection(selectButtonElement) {
-    let value = selectButtonElement.value;
+async function uploadVideoSelection() {
+    let ele = document.getElementsByName('options');
+    let selectedVideoPos;
     let selectedVideo;
 
+    for (i = 0; i < ele.length; i++) {
+        if (ele[i].checked) {
+            selectedVideoPos = ele[i].value;
+        }
+    }
+
     if (videoA.finished && videoB.finished) {
-        if (value == videoA.position) {
+        if (selectedVideoPos == videoA.position) {
             selectedVideo = videoA;
         } else {
             selectedVideo = videoB;
