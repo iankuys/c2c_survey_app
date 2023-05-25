@@ -3,6 +3,7 @@
 const server = "http://127.0.0.1:8000/c2c-retention-dce";
 //const server = "https://studies.mind.uci.edu/c2c-retention-dce";
 
+// For any given video page: video A is on the left/top, video B is on the right/bottom
 const VIDEO_A_HTML_ID = "videoA";
 const VIDEO_A_SELECT_BUTTON_HTML_ID = "selectVideoA";
 const VIDEO_A_MESSAGE_BOX_HTML_ID = "videoAMessage";
@@ -65,9 +66,7 @@ async function getVideos() {
     const url = `${server}/get_videos?key=${access_key}`;
     const response = await fetch(url);
     const vids = await response.json(); // is await necessary here?
-    vA = { vid_id: vids.vidA_id, url: vids.vidA_url };
-    vB = { vid_id: vids.vidB_id, url: vids.vidB_url };
-    return ([vA, vB]);
+    return vids;
 }
 
 function getUTCTimestampNow() {
@@ -123,37 +122,33 @@ function createLogEntry(vimeo_data, data_label, video_position, video_id) {
     return logEntry;
 }
 
+class VideoChoice {
+    constructor(id, url, playerHTMLID, selectButtonHTMLID, messageBoxHTMLID) {
+        this.vid_id = id;
+        this.url = url;
+        this.position = getVideoPositionFromHTML(playerHTMLID);
+        this.selectButtonID = selectButtonHTMLID;
+        this.messageBoxID = messageBoxHTMLID;
+
+        this.logs = [];
+        this.startTimestamp = "";
+        this.endTimestamp = "";
+        this.skipped = false;
+        this.pauseCount = 0;
+        this.watchCount = 0;
+        this.finished = false;
+        this.playbackPosition = 0;
+    }
+}
+
 async function setupVideoPlayer() {
     let videos = await getVideos();
-    // Videos are initialized with attributes 'vid_id' and 'url' in getVideos()
 
-    videoA = videos[0];
-    videoA.position = getVideoPositionFromHTML(VIDEO_A_HTML_ID);
-    videoA.logs = [];
-    videoA.startTimestamp = "";
-    videoA.endTimestamp = "";
-    videoA.skipped = false;
-    videoA.pauseCount = 0;
-    videoA.watchCount = 0;
-    videoA.finished = false;
-    videoA.playbackPosition = 0;
-    videoA.selectButtonID = VIDEO_A_SELECT_BUTTON_HTML_ID;
-    videoA.messageBoxID = VIDEO_A_MESSAGE_BOX_HTML_ID;
+    videoA = new VideoChoice(videos.vidA_id, videos.vidA_url, VIDEO_A_HTML_ID, VIDEO_A_SELECT_BUTTON_HTML_ID, VIDEO_A_MESSAGE_BOX_HTML_ID);
     let _vidA_vimeo_params = { url: videoA.url };
     videoA.player = new Vimeo.Player(VIDEO_A_HTML_ID, _vidA_vimeo_params);
 
-    videoB = videos[1];
-    videoB.position = getVideoPositionFromHTML(VIDEO_B_HTML_ID);
-    videoB.logs = [];
-    videoB.startTimestamp = "";
-    videoB.endTimestamp = "";
-    videoB.skipped = false;
-    videoB.pauseCount = 0;
-    videoB.watchCount = 0;
-    videoB.finished = false;
-    videoB.playbackPosition = 0;
-    videoB.selectButtonID = VIDEO_B_SELECT_BUTTON_HTML_ID;
-    videoB.messageBoxID = VIDEO_B_MESSAGE_BOX_HTML_ID;
+    videoB = new VideoChoice(videos.vidB_id, videos.vidB_url, VIDEO_B_HTML_ID, VIDEO_B_SELECT_BUTTON_HTML_ID, VIDEO_B_MESSAGE_BOX_HTML_ID);
     let _vidB_vimeo_params = { url: videoB.url };
     videoB.player = new Vimeo.Player(VIDEO_B_HTML_ID, _vidB_vimeo_params);
 
@@ -161,7 +156,7 @@ async function setupVideoPlayer() {
     console.log(`Survey page started at ${videoPageStartTime}`);
     console.log(`Loaded videos ${videoA.vid_id} (pos ${videoA.position}) and ${videoB.vid_id} (pos ${videoB.position})`);
 
-    function setupEvents(videoObj, otherVideoObj) {
+    function setupPlayerEvents(videoObj, otherVideoObj) {
         // https://developer.vimeo.com/player/sdk/reference#events-for-playback-controls
         var _videoMessageBoxElement = document.getElementById(videoObj.messageBoxID);
         var _selectionButtonElement = document.getElementById(videoObj.selectButtonID);
@@ -270,8 +265,8 @@ async function setupVideoPlayer() {
         //     }
         // })
     }
-    setupEvents(videoA, otherVideoObj = videoB);
-    setupEvents(videoB, otherVideoObj = videoA);
+    setupPlayerEvents(videoA, otherVideoObj = videoB);
+    setupPlayerEvents(videoB, otherVideoObj = videoA);
 }
 
 async function uploadVideoSelection(selectButtonElement) {
@@ -284,7 +279,7 @@ async function uploadVideoSelection(selectButtonElement) {
         } else {
             selectedVideo = videoB;
         }
-        console.log(`User selected video ${selectedVideo.position} - ID ${selectedVideo.vid_id} - ${selectedVideo.pauseCount} pause(s)`);
+        console.log(`User selected video ${selectedVideo.position} - ID ${selectedVideo.vid_id} - ${selectedVideo.pauseCount} pause(s), ${selectedVideo.watchCount} watch(es)`);
 
         videoPageEndTime = getUTCTimestampNow();
 
