@@ -157,6 +157,8 @@ async function setupVideoPlayer() {
     console.log(`Survey page started at ${videoPageStartTime}`);
     console.log(`Loaded videos ${videoA.vid_id} (pos ${videoA.position}) and ${videoB.vid_id} (pos ${videoB.position})`);
 
+    var finalSelectionButton = document.getElementById(VIDEO_SUBMIT_BUTTON_HTML_ID);
+
     function setupPlayerEvents(videoObj, otherVideoObj) {
         // https://developer.vimeo.com/player/sdk/reference#events-for-playback-controls
         var _videoMessageBoxElement = document.getElementById(videoObj.messageBoxID);
@@ -250,12 +252,11 @@ async function setupVideoPlayer() {
                 }
             }
 
-            // disable buttons when both videos are finished
+            // Enable buttons when both videos are finished and with no skips
             if (videoObj.finished && otherVideoObj.finished) {
-                // There were no skips in both videos: enable the selection button 
                 _selectionButtonElement.disabled = false;
                 _otherSelectionButtonElement.disabled = false;
-                document.getElementById(VIDEO_SUBMIT_BUTTON_HTML_ID).disabled = false;
+                finalSelectionButton.disabled = false;
             }
             console.log(`Video ${videoObj.position} (ID ${videoObj.vid_id}): ended with ${videoObj.pauseCount} pause(s), watched ${videoObj.watchCount} time(s)`);
             console.log(`Video ${videoObj.position} (ID ${videoObj.vid_id}): any skips? ${videoObj.skipped}`);
