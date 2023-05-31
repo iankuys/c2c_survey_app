@@ -5,11 +5,12 @@ const server = "http://127.0.0.1:8000/c2c-retention-dce";
 
 // For any given video page: video A is on the left/top, video B is on the right/bottom
 const VIDEO_A_HTML_ID = "videoA";
-const VIDEO_A_SELECT_BUTTON_HTML_ID = "selectVideoA";
+const VIDEO_A_SELECT_BUTTON_HTML_ID = "videoASelect";
 const VIDEO_A_MESSAGE_BOX_HTML_ID = "videoAMessage";
 const VIDEO_B_HTML_ID = "videoB";
-const VIDEO_B_SELECT_BUTTON_HTML_ID = "selectVideoB";
+const VIDEO_B_SELECT_BUTTON_HTML_ID = "videoBSelect";
 const VIDEO_B_MESSAGE_BOX_HTML_ID = "videoBMessage";
+
 const VIDEO_SUBMIT_BUTTON_HTML_ID = "submitVideoSelection";
 
 // Number of seconds from the beginning of a video that a user can seek to
@@ -28,6 +29,8 @@ const _params = new Proxy(new URLSearchParams(window.location.search), {
     get: (searchParams, prop) => searchParams.get(prop),
 });
 const access_key = _params.key;
+
+var finalSelectionButton = document.getElementById(VIDEO_SUBMIT_BUTTON_HTML_ID);
 
 //// Helpers ////
 
@@ -157,8 +160,6 @@ async function setupVideoPlayer() {
     console.log(`Survey page started at ${videoPageStartTime}`);
     console.log(`Loaded videos ${videoA.vid_id} (pos ${videoA.position}) and ${videoB.vid_id} (pos ${videoB.position})`);
 
-    var finalSelectionButton = document.getElementById(VIDEO_SUBMIT_BUTTON_HTML_ID);
-
     function setupPlayerEvents(videoObj, otherVideoObj) {
         // https://developer.vimeo.com/player/sdk/reference#events-for-playback-controls
         var _videoMessageBoxElement = document.getElementById(videoObj.messageBoxID);
@@ -256,7 +257,6 @@ async function setupVideoPlayer() {
             if (videoObj.finished && otherVideoObj.finished) {
                 _selectionButtonElement.disabled = false;
                 _otherSelectionButtonElement.disabled = false;
-                finalSelectionButton.disabled = false;
             }
             console.log(`Video ${videoObj.position} (ID ${videoObj.vid_id}): ended with ${videoObj.pauseCount} pause(s), watched ${videoObj.watchCount} time(s)`);
             console.log(`Video ${videoObj.position} (ID ${videoObj.vid_id}): any skips? ${videoObj.skipped}`);
@@ -326,6 +326,12 @@ async function uploadVideoSelection() {
 
     } else {
         alert("Please finish watching all videos before making a selection.");
+    }
+}
+
+function activateSelectionButton() {
+    if (finalSelectionButton.hasAttribute("disabled")) {
+        finalSelectionButton.disabled = false;
     }
 }
 
