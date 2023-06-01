@@ -25,6 +25,10 @@
         <div class="py-2 d-grid gap-2 col-6 mx-auto">
             <button onclick="uploadVideoSelection()" type="button" value="{{ vid_b_position }}"
             class="btn btn-primary" id="submitVideoSelection" disabled>Submit selection</button>
+            <button hidden type="button" class="btn btn-primary disabled" id="loading_button">
+                <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                Loading....
+            </button>
         </div>
         </div>
     </div>

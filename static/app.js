@@ -12,6 +12,7 @@ const VIDEO_B_SELECT_BUTTON_HTML_ID = "videoBSelect";
 const VIDEO_B_MESSAGE_BOX_HTML_ID = "videoBMessage";
 
 const VIDEO_SUBMIT_BUTTON_HTML_ID = "submitVideoSelection";
+const VIDEO_SUBMIT_LOADING_BUTTON_HTML_ID = "loading_button";
 
 // Number of seconds from the beginning of a video that a user can seek to
 // that counts as "from the beginning" (in case they skipped ahead and need to restart the video)
@@ -31,6 +32,7 @@ const _params = new Proxy(new URLSearchParams(window.location.search), {
 const access_key = _params.key;
 
 var finalSelectionButton = document.getElementById(VIDEO_SUBMIT_BUTTON_HTML_ID);
+var finalSelectionLoadingButton = document.getElementById(VIDEO_SUBMIT_LOADING_BUTTON_HTML_ID);
 
 //// Helpers ////
 
@@ -291,6 +293,8 @@ async function uploadVideoSelection() {
     }
 
     if (videoA.finished && videoB.finished) {
+        finalSelectionButton.setAttribute('hidden', '');
+        finalSelectionLoadingButton.removeAttribute('hidden');
         if (selectedVideoPos == videoA.position) {
             selectedVideo = videoA;
         } else {
