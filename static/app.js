@@ -96,17 +96,17 @@ function createLogEntry(vimeo_data, data_label, video_position, video_id) {
         position: video_position,
         vid_id: video_id,
         timestamp: UTCTimestamp,
-        event_type: data_label
+        type: data_label
     }
 
     if (data_label.includes("VOLUME")) {
         let _vimeo_volume = parseVimeoResponse(vimeo_data, "volume");
         let _vimeo_volume_percent = Number(_vimeo_volume * 100).toFixed(1);
-        logEntry.event_data = `${_vimeo_volume_percent}%`;
+        logEntry.data = `${_vimeo_volume_percent}%`;
     }
     else if (data_label.includes("SPEED")) {
         let _vimeo_playback_rate = parseVimeoResponse(vimeo_data, "playbackRate");
-        logEntry.event_data = `${_vimeo_playback_rate}x`;
+        logEntry.data = `${_vimeo_playback_rate}x`;
     } else {
         // Default event type that includes time data (seconds, duration, percent)
         let _vimeo_seconds = parseVimeoResponse(vimeo_data, "seconds");
@@ -115,14 +115,14 @@ function createLogEntry(vimeo_data, data_label, video_position, video_id) {
         let _vimeo_percent_percent = Number(_vimeo_percent * 100).toFixed(1);
 
         if (data_label.includes("PLAYED") && _vimeo_seconds === 0 && _vimeo_percent === 0) {
-            logEntry.event_type = "STARTED";
+            logEntry.type = "STARTED";
         }
         if (data_label.includes("PAUSED") && _vimeo_seconds === _vimeo_duration && _vimeo_percent === 1) {
             // Finishing a video creates a "pause" event
-            logEntry.event_type = "FINISHED";
+            logEntry.type = "FINISHED";
         }
 
-        logEntry.event_data = `${_vimeo_seconds}sec/${_vimeo_percent_percent}%`;
+        logEntry.data = `${_vimeo_seconds}sec/${_vimeo_percent_percent}%`;
     }
     console.log(logEntry);
     return logEntry;
