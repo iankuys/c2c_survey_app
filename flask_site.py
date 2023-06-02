@@ -2,7 +2,7 @@ import json
 import random
 import urllib.parse
 
-from flask import Flask, redirect, render_template, request, url_for
+from flask import Flask, make_response, redirect, render_template, request, url_for
 
 import emails
 import mindlib
@@ -27,6 +27,7 @@ BUBBLE_MESSAGES = {
 ALLOWED_SCREENS = [1, 2, 3]
 
 VIDEOS = mindlib.json_to_dict("./content/videos.json")
+UNDEFINED_VID_ID_PLACEHOLDER = "UNDEFINED"
 SUSPICIOUS_CHARS = [";", ":", "&", '"', "'", "`", ">", "<", "{", "}", "|", ".", "%"]
 
 
@@ -167,14 +168,21 @@ def index():
                 )
 
             # Got video data but the user hasn't finished the survey yet - don't assign any more videos
-            already_assigned_videos = [
-                (r["video_a"], r["video_b"]) for r in existing_dcv_video_data
-            ]
+            print(existing_dcv_video_data)
+            four_videos = []
+            for r in existing_dcv_video_data:
+                existing_vid_a_id = r["video_a"]
+                existing_vid_b_id = r["video_b"]
+                if (
+                    len(existing_vid_a_id) > 0
+                    and existing_vid_a_id != UNDEFINED_VID_ID_PLACEHOLDER
+                    and len(existing_vid_b_id) > 0
+                    and existing_vid_b_id != UNDEFINED_VID_ID_PLACEHOLDER
+                ):
+                    four_videos.append(r["video_a"])
+                    four_videos.append(r["video_b"])
             print(
-                f"Experiment record '{hashed_id}' (C2C ID {access_keys_to_c2c_ids[hashed_id]}) was already created with videos {already_assigned_videos})"
-            )
-            return render_template(
-                "index.html", key=hashed_id, c2c_id=access_keys_to_c2c_ids[hashed_id]
+                f"Experiment record '{hashed_id}' (C2C ID {access_keys_to_c2c_ids[hashed_id]}) was already created with videos {four_videos})"
             )
         else:
             # New survey participant
@@ -205,8 +213,8 @@ def index():
                 {
                     HASHED_ID_EXPERIMENT_REDCAP_VAR: hashed_id,
                     "redcap_event_name": "screen3_arm_1",
-                    "video_a": "UNDEFINED",
-                    "video_b": "UNDEFINED",
+                    "video_a": UNDEFINED_VID_ID_PLACEHOLDER,
+                    "video_b": UNDEFINED_VID_ID_PLACEHOLDER,
                 },
             ]
             print(
@@ -217,9 +225,18 @@ def index():
                 flask_app.config["REDCAP_API_URL"],
                 new_record,
             )
-            return render_template(
-                "index.html", key=hashed_id, c2c_id=access_keys_to_c2c_ids[hashed_id]
-            )
+        resp = make_response(
+            render_template("index.html", key=hashed_id, c2c_id=access_keys_to_c2c_ids[hashed_id])
+        )
+        resp.set_cookie("v1_id", four_videos[0])
+        resp.set_cookie("v1_url", VIDEOS[four_videos[0]])
+        resp.set_cookie("v2_id", four_videos[1])
+        resp.set_cookie("v2_url", VIDEOS[four_videos[1]])
+        resp.set_cookie("v3_id", four_videos[2])
+        resp.set_cookie("v3_url", VIDEOS[four_videos[2]])
+        resp.set_cookie("v4_id", four_videos[3])
+        resp.set_cookie("v4_url", VIDEOS[four_videos[3]])
+        return resp
     return render_template("index.html")
 
 

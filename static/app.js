@@ -83,6 +83,7 @@ function getVideoPositionFromHTML(videoDivID) {
 
 async function getVideos() {
     // Contacts our servers to obtain the video IDs and URLs.
+    // TODO: fetch from cookies instead?
     const url = `${server}/get_videos?key=${access_key}`;
     const response = await fetch(url);
     const vids = await response.json(); // is await necessary here?
