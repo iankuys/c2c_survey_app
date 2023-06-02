@@ -3,7 +3,7 @@
 
 <div class="text-center">
     <div class="container">
-        {% if screen and vid_a_position and vid_b_position %}
+        {% if screen and vid_a_position and vid_b_position and vid_a_position is integer and vid_b_position is integer %}
         <p><b>Watch both videos below until they are fully completed</b>. A pair of checkmarks will appear below a video when it has ended.<br />Then, <b>select the video you prefer</b> using the selection buttons at the bottom of the page.</p>
         <p><i>Please refrain from skipping any sections or seeking ahead in the videos.<br />The selection buttons will not activate until both videos have played through from the beginning.</i></p>
         <p>You may pause, rewind, or replay the videos as many times as you like.</p>

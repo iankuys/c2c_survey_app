@@ -62,13 +62,26 @@ function parseVimeoResponse(data, attr) {
 };
 
 function getVideoPositionFromHTML(videoDivID) {
+    // Reads the video survey page's HTML content to obtain the video's position
+    // as an integer.
+    // Also sets the inner text of that element to be blank so it can be replaced
+    // with a Vimeo player element.
+    // Returns the integer position on success, or 0 on failure (if the video HTML
+    // element can't be found or if it can't be interpreted as an integer).
     videoElement = document.getElementById(videoDivID);
-    let vidPosition = videoElement.innerHTML;
-    videoElement.innerText = "";
-    return vidPosition;
+    if (videoElement) {
+        let vidPosition = videoElement.innerHTML;
+        videoElement.innerText = "";
+        let result = parseInt(vidPosition);
+        if (!isNaN(result)) {
+            return result;
+        }
+    }
+    return 0;
 }
 
 async function getVideos() {
+    // Contacts our servers to obtain the video IDs and URLs.
     const url = `${server}/get_videos?key=${access_key}`;
     const response = await fetch(url);
     const vids = await response.json(); // is await necessary here?
@@ -137,13 +150,17 @@ class VideoChoice {
         this.messageBoxID = messageBoxHTMLID;
 
         this.logs = [];
-        this.startTimestamp = "";
-        this.endTimestamp = "";
+        this.startTimestamp = "DEFAULT-START";
+        this.endTimestamp = "DEFAULT-END";
         this.skipped = false;
         this.pauseCount = 0;
         this.watchCount = 0;
         this.finished = false;
         this.playbackPosition = 0;
+    }
+    getLog() {
+        // Returns a string containing essential data about this object
+        return `VideoChoice(vid_id=${this.vid_id}, position=${this.position}, startTimestamp=${this.startTimestamp}, endTimestamp=${this.endTimestamp}, skipped=${this.skipped}, pauseCount=${this.pauseCount}, watchCount=${this.watchCount}, finished=${this.finished})`;
     }
 }
 
@@ -151,12 +168,19 @@ async function setupVideoPlayer() {
     let videos = await getVideos();
 
     videoA = new VideoChoice(videos.vidA_id, videos.vidA_url, VIDEO_A_HTML_ID, VIDEO_A_SELECT_BUTTON_HTML_ID, VIDEO_A_MESSAGE_BOX_HTML_ID);
-    let _vidA_vimeo_params = { url: videoA.url };
-    videoA.player = new Vimeo.Player(VIDEO_A_HTML_ID, _vidA_vimeo_params);
-
     videoB = new VideoChoice(videos.vidB_id, videos.vidB_url, VIDEO_B_HTML_ID, VIDEO_B_SELECT_BUTTON_HTML_ID, VIDEO_B_MESSAGE_BOX_HTML_ID);
-    let _vidB_vimeo_params = { url: videoB.url };
-    videoB.player = new Vimeo.Player(VIDEO_B_HTML_ID, _vidB_vimeo_params);
+
+    if (videoA.position <= 0 || videoB.position <= 0) {
+        // Need both videos to load - if they load correctly, their positions will be >= 1
+        console.log(`Did not load videos due to invalid positions (A: ${videoA.position}, B: ${videoB.position})`)
+        return;
+    }
+
+    // Initialize Vimeo player inside their respective VideoChoice objects
+    videoA.player = new Vimeo.Player(VIDEO_A_HTML_ID, { url: videoA.url });
+    videoB.player = new Vimeo.Player(VIDEO_B_HTML_ID, { url: videoB.url });
+    console.log(`Loaded Video A: ${videoA.getLog()}`);
+    console.log(`Loaded Video B: ${videoB.getLog()}`);
 
     videoPageStartTime = getUTCTimestampNow();
     console.log(`Survey page started at ${videoPageStartTime}`);
@@ -300,7 +324,7 @@ async function uploadVideoSelection() {
         } else {
             selectedVideo = videoB;
         }
-        console.log(`User selected video ${selectedVideo.position} - ID ${selectedVideo.vid_id} - ${selectedVideo.pauseCount} pause(s), ${selectedVideo.watchCount} watch(es)`);
+        console.log(`User selected this video: ${selectedVideo.getLog()}`);
 
         videoPageEndTime = getUTCTimestampNow();
 
