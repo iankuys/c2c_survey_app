@@ -262,21 +262,30 @@ def videos():
             print(f"Access key '{hashed_id}' not found in the report from C2Cv3")
             return redirect(url_for("index", error_code="bad_key"))
 
-        print(f"Survey starting: {hashed_id}")
-        # Get the correct video positions for the current screen:
-        # screen 1 = videos 1 and 2
-        # screen 2 = videos 3 and 4
-        # screen 3 = videos 5 and 6
-        scr = 1
-        if scr not in ALLOWED_SCREENS:
+        if "screen" in request.args and len(request.args["screen"]) > 0:
+            try:
+                scr = int(request.args["screen"])
+            except ValueError:
+                return render_template("videos.html")
+
+            if scr not in ALLOWED_SCREENS:
+                return render_template("videos.html")
+
+            # Get the correct video positions for the current screen:
+            # screen 1 = videos 1 and 2,
+            # screen 2 = videos 3 and 4,
+            # screen 3 = videos 5 and 6, etc...
+            vid_a_pos = (scr * 2) - 1
+            vid_b_pos = scr * 2
+
+            print(f"User {hashed_id} starting screen {scr} (videos {vid_a_pos} & {vid_b_pos})")
+
+            return render_template(
+                "videos.html", screen=scr, vid_a_position=vid_a_pos, vid_b_position=vid_b_pos
+            )
+        else:
+            # No "screen" URL parameter
             return render_template("videos.html")
-
-        vid_a_pos = (scr * 2) - 1
-        vid_b_pos = scr * 2
-
-        return render_template(
-            "videos.html", screen=scr, vid_a_position=vid_a_pos, vid_b_position=vid_b_pos
-        )
     return redirect(url_for("index", error_code="missing_key"), code=301)
 
 

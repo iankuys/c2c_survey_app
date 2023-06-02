@@ -30,6 +30,7 @@ const _params = new Proxy(new URLSearchParams(window.location.search), {
     get: (searchParams, prop) => searchParams.get(prop),
 });
 const access_key = _params.key;
+const thisScreen = _params.screen;
 
 var finalSelectionButton = document.getElementById(VIDEO_SUBMIT_BUTTON_HTML_ID);
 var finalSelectionLoadingButton = document.getElementById(VIDEO_SUBMIT_LOADING_BUTTON_HTML_ID);
@@ -183,7 +184,7 @@ async function setupVideoPlayer() {
     console.log(`Loaded Video B: ${videoB.getLog()}`);
 
     videoPageStartTime = getUTCTimestampNow();
-    console.log(`Survey page started at ${videoPageStartTime}`);
+    console.log(`Survey screen ${thisScreen} started at ${videoPageStartTime}`);
     console.log(`Loaded videos ${videoA.vid_id} (pos ${videoA.position}) and ${videoB.vid_id} (pos ${videoB.position})`);
 
     function setupPlayerEvents(videoObj, otherVideoObj) {
