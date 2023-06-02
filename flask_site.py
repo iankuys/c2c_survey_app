@@ -23,6 +23,9 @@ BUBBLE_MESSAGES = {
     "unknown": "Unknown error.",
 }
 
+# List of screen numbers that we are able to support
+ALLOWED_SCREENS = [1, 2, 3]
+
 VIDEOS = mindlib.json_to_dict("./content/videos.json")
 SUSPICIOUS_CHARS = [";", ":", "&", '"', "'", "`", ">", "<", "{", "}", "|", ".", "%"]
 
@@ -260,7 +263,20 @@ def videos():
             return redirect(url_for("index", error_code="bad_key"))
 
         print(f"Survey starting: {hashed_id}")
-        return render_template("videos.html", vid_a_position="1", vid_b_position="2")
+        # Get the correct video positions for the current screen:
+        # screen 1 = videos 1 and 2
+        # screen 2 = videos 3 and 4
+        # screen 3 = videos 5 and 6
+        scr = 1
+        if scr not in ALLOWED_SCREENS:
+            return render_template("videos.html")
+
+        vid_a_pos = (scr * 2) - 1
+        vid_b_pos = scr * 2
+
+        return render_template(
+            "videos.html", screen=scr, vid_a_position=vid_a_pos, vid_b_position=vid_b_pos
+        )
     return redirect(url_for("index", error_code="missing_key"), code=301)
 
 
