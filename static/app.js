@@ -81,13 +81,35 @@ function getVideoPositionFromHTML(videoDivID) {
     return 0;
 }
 
-async function getVideos() {
+function getVideoInfoFromCookie(videoPos, vidsCookies, cookieSuffix) {
+    let cookieName = `v${videoPos}_${cookieSuffix}`;
+    return vidsCookies[cookieName];
+}
+
+function cookiesToJSON(cookieString) {
+    let output = {};
+    cookieString.split(/\s*;\s*/).forEach(function (pair) {
+        pair = pair.split(/\s*=\s*/);
+        output[pair[0]] = pair.splice(1).join('=');
+    });
+    return output;
+}
+
+function getVideos() {
     // Contacts our servers to obtain the video IDs and URLs.
     // TODO: fetch from cookies instead?
-    const url = `${server}/get_videos?key=${access_key}`;
-    const response = await fetch(url);
-    const vids = await response.json(); // is await necessary here?
-    return vids;
+    // {vidA_id: "aa", vidA_url: "aaa", vidB_id: "bb", vidB_url: "bbb"}
+    // const url = `${server}/get_videos?key=${access_key}`;
+    // const response = await fetch(url);
+    // const vids = await response.json(); // is await necessary here?
+    let allCookies = cookiesToJSON(document.cookie);
+    result = {};
+    for (const c in allCookies) {
+        if (c.startsWith("v") && (c.endsWith("_id") || c.endsWith("_url"))) {
+            result[c] = allCookies[c];
+        }
+    }
+    return result;
 }
 
 function getUTCTimestampNow() {
@@ -144,10 +166,10 @@ function createLogEntry(vimeo_data, data_label, video_position, video_id) {
 }
 
 class VideoChoice {
-    constructor(id, url, playerHTMLID, selectButtonHTMLID, messageBoxHTMLID) {
-        this.vid_id = id;
-        this.url = url;
+    constructor(idsAndURLs, playerHTMLID, selectButtonHTMLID, messageBoxHTMLID) {
         this.position = getVideoPositionFromHTML(playerHTMLID);
+        this.vid_id = getVideoInfoFromCookie(this.position, idsAndURLs, "id");
+        this.url = getVideoInfoFromCookie(this.position, idsAndURLs, "url");
         this.selectButtonID = selectButtonHTMLID;
         this.messageBoxID = messageBoxHTMLID;
 
@@ -162,15 +184,15 @@ class VideoChoice {
     }
     getLog() {
         // Returns a string containing essential data about this object
-        return `VideoChoice(vid_id=${this.vid_id}, position=${this.position}, startTimestamp=${this.startTimestamp}, endTimestamp=${this.endTimestamp}, skipped=${this.skipped}, pauseCount=${this.pauseCount}, watchCount=${this.watchCount}, finished=${this.finished})`;
+        return `VideoChoice(position=${this.position}, vid_id=${this.vid_id}, url=${this.url}, startTimestamp=${this.startTimestamp}, endTimestamp=${this.endTimestamp}, skipped=${this.skipped}, pauseCount=${this.pauseCount}, watchCount=${this.watchCount}, finished=${this.finished})`;
     }
 }
 
 async function setupVideoPlayer() {
-    let videos = await getVideos();
+    let allIDsAndURLs = getVideos();
 
-    videoA = new VideoChoice(videos.vidA_id, videos.vidA_url, VIDEO_A_HTML_ID, VIDEO_A_SELECT_BUTTON_HTML_ID, VIDEO_A_MESSAGE_BOX_HTML_ID);
-    videoB = new VideoChoice(videos.vidB_id, videos.vidB_url, VIDEO_B_HTML_ID, VIDEO_B_SELECT_BUTTON_HTML_ID, VIDEO_B_MESSAGE_BOX_HTML_ID);
+    videoA = new VideoChoice(allIDsAndURLs, VIDEO_A_HTML_ID, VIDEO_A_SELECT_BUTTON_HTML_ID, VIDEO_A_MESSAGE_BOX_HTML_ID);
+    videoB = new VideoChoice(allIDsAndURLs, VIDEO_B_HTML_ID, VIDEO_B_SELECT_BUTTON_HTML_ID, VIDEO_B_MESSAGE_BOX_HTML_ID);
 
     if (videoA.position <= 0 || videoB.position <= 0) {
         // Need both videos to load - if they load correctly, their positions will be >= 1

@@ -85,36 +85,36 @@ async def get_video_choice(video_page_data: VideoPageIn, key: str | None = None)
         print("No access key detected")
 
 
-@app.get(f"/{URL_PREFIX}/get_videos")
-async def send_video(key: str | None = None) -> VideosOut | dict:
-    if key:
-        # video_A_id, video_B_id = random.sample(list(VIDEOS.keys()), 2)
-        screens = redcap_helpers.export_video_ids(
-            secrets["C2C_DCV_API_TOKEN"], secrets["REDCAP_API_URL"], recordid=key
-        )
-        if len(screens) == 0:
-            # REDCap API returns an empty list if the record ID (access key) isn't in the project
-            print(f"Access key {key} not found in REDCap")
-            return {"detail": "Not Found"}
+# @app.get(f"/{URL_PREFIX}/get_videos")
+# async def send_video(key: str | None = None) -> VideosOut | dict:
+#     if key:
+#         # video_A_id, video_B_id = random.sample(list(VIDEOS.keys()), 2)
+#         screens = redcap_helpers.export_video_ids(
+#             secrets["C2C_DCV_API_TOKEN"], secrets["REDCAP_API_URL"], recordid=key
+#         )
+#         if len(screens) == 0:
+#             # REDCap API returns an empty list if the record ID (access key) isn't in the project
+#             print(f"Access key {key} not found in REDCap")
+#             return {"detail": "Not Found"}
 
-        # Get the next 2 video IDs based on REDCap event completion
-        video_A_id = ""
-        video_B_id = ""
-        for screen in screens:
-            this_screen_complete = screen["video_complete"] == "2"
-            if not this_screen_complete:
-                video_A_id = screen["video_a"]
-                video_B_id = screen["video_b"]
-                break
+#         # Get the next 2 video IDs based on REDCap event completion
+#         video_A_id = ""
+#         video_B_id = ""
+#         for screen in screens:
+#             this_screen_complete = screen["video_complete"] == "2"
+#             if not this_screen_complete:
+#                 video_A_id = screen["video_a"]
+#                 video_B_id = screen["video_b"]
+#                 break
 
-        print(f"Sending videos '{video_A_id}' and '{video_B_id}' to user '{key}'")
-        return VideosOut(
-            vidA_id=video_A_id,
-            vidA_url=VIDEOS[video_A_id],
-            vidB_id=video_B_id,
-            vidB_url=VIDEOS[video_B_id],
-        )
-    return {"detail": "Not Found"}
+#         print(f"Sending videos '{video_A_id}' and '{video_B_id}' to user '{key}'")
+#         return VideosOut(
+#             vidA_id=video_A_id,
+#             vidA_url=VIDEOS[video_A_id],
+#             vidB_id=video_B_id,
+#             vidB_url=VIDEOS[video_B_id],
+#         )
+#     return {"detail": "Not Found"}
 
 
 @app.get("/")
