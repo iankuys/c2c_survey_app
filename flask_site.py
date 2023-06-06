@@ -20,6 +20,8 @@ EXPECTED_HASHED_ID_LENGTH = 12
 BUBBLE_MESSAGES = {
     "bad_key": "Invalid key.",
     "missing_key": "Missing access key.",
+    "v01": "Failed to load videos. Please try starting the survey again.",  # missing cookies
+    "v02": "Failed to load videos. Please try starting the survey again.",  # missing "screen" URL param
     "unknown": "Unknown error.",
 }
 
@@ -168,7 +170,7 @@ def index():
                 )
 
             # Got video data but the user hasn't finished the survey yet - don't assign any more videos
-            print(existing_dcv_video_data)
+            # print(existing_dcv_video_data)
             four_videos = []
             for r in existing_dcv_video_data:
                 existing_vid_a_id = r["video_a"]
@@ -178,6 +180,7 @@ def index():
                     and existing_vid_a_id != UNDEFINED_VID_ID_PLACEHOLDER
                     and len(existing_vid_b_id) > 0
                     and existing_vid_b_id != UNDEFINED_VID_ID_PLACEHOLDER
+                    and len(four_videos) < 4
                 ):
                     four_videos.append(r["video_a"])
                     four_videos.append(r["video_b"])
@@ -288,6 +291,24 @@ def videos():
             if scr not in ALLOWED_SCREENS:
                 return render_template("videos.html")
 
+            # Wanted to check for cookie availability, but Chrome cache was acting weird
+            # and locked me out of accessing the survey again if I cleared my cookies during
+            # the survey
+            # Even after I restarted the survey and restored the cookies, it would send me
+            # back to the index page with the cookie error
+            # if (
+            #     "v1_id" not in request.cookies
+            #     or "v1_url" not in request.cookies
+            #     or "v2_id" not in request.cookies
+            #     or "v2_url" not in request.cookies
+            #     or "v3_id" not in request.cookies
+            #     or "v3_url" not in request.cookies
+            #     or "v4_id" not in request.cookies
+            #     or "v4_url" not in request.cookies
+            # ):
+            #     print(f"Missing cookies for user {hashed_id}, screen {scr}")
+            #     return redirect(url_for("index", error_code="v01"), code=301)
+
             # Get the correct video positions for the current screen:
             # screen 1 = videos 1 and 2,
             # screen 2 = videos 3 and 4,
@@ -302,7 +323,7 @@ def videos():
             )
         else:
             # No "screen" URL parameter
-            return render_template("videos.html")
+            return redirect(url_for("index", error_code="v02"), code=301)
     return redirect(url_for("index", error_code="missing_key"), code=301)
 
 
