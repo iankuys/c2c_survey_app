@@ -359,6 +359,7 @@ async function uploadVideoSelection() {
             },
             body: JSON.stringify({
                 user_agent: navigator.userAgent,
+                screen: thisScreen,
                 screen_time_start: videoPageStartTime,
                 vidA_playback_time_start: "(temp A start time)",
                 vidA_playback_time_end: "(temp A end time)",

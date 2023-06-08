@@ -31,6 +31,7 @@ class VideoPageIn(BaseModel):
 
     screen_time_start: str
     user_agent: str
+    screen: int
 
     vidA_playback_time_start: str
     vidA_playback_time_end: str
@@ -61,7 +62,7 @@ async def get_video_choice(video_page_data: VideoPageIn, key: str | None = None)
     if key:
         print(f"User '{key}' ({video_page_data.user_agent}) finished a survey page")
         print(
-            f"\tSelected video with ID '{video_page_data.selected_vid_id}' @ pos {video_page_data.selected_vid_position}"
+            f"\tSelected video with ID '{video_page_data.selected_vid_id}' @ pos {video_page_data.selected_vid_position} (screen {video_page_data.screen})"
         )
         print(
             f"\tPage duration: from {video_page_data.screen_time_start} to {video_page_data.screen_time_end}"
