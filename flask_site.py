@@ -239,6 +239,7 @@ def index():
         resp.set_cookie("v3_url", VIDEOS[four_videos[2]])
         resp.set_cookie("v4_id", four_videos[3])
         resp.set_cookie("v4_url", VIDEOS[four_videos[3]])
+        resp.set_cookie("completed_screen", "")
         return resp
     return render_template("index.html")
 
@@ -282,11 +283,22 @@ def videos():
             print(f"Access key '{hashed_id}' not found in the report from C2Cv3")
             return redirect(url_for("index", error_code="bad_key"))
 
-        if "screen" in request.args and len(request.args["screen"]) > 0:
+        if (
+            "screen" in request.args
+            and len(request.args["screen"]) > 0
+            and "completed_screen" in request.cookies
+        ):
             try:
                 scr = int(request.args["screen"])
             except ValueError:
                 return render_template("videos.html")
+
+            # Check for previous screen completion
+            most_recent_completed_screen = request.cookies["completed_screen"]
+            print("Most recent completed screen (via cookie):", most_recent_completed_screen)
+            # TODO: set this screen to the correct screen (check if users are manipulating the URL)
+            # TODO: if this is screen 2, make a REDCap API call to get the next 2 videos and
+            #       set the following cookies: v5_id, v5_url, v6_id, v6_url
 
             if scr not in ALLOWED_SCREENS:
                 return render_template("videos.html")

@@ -30,7 +30,7 @@ const _params = new Proxy(new URLSearchParams(window.location.search), {
     get: (searchParams, prop) => searchParams.get(prop),
 });
 const access_key = _params.key;
-const thisScreen = _params.screen;
+const thisScreen = parseInt(_params.screen);
 
 var finalSelectionButton = document.getElementById(VIDEO_SUBMIT_BUTTON_HTML_ID);
 var finalSelectionLoadingButton = document.getElementById(VIDEO_SUBMIT_LOADING_BUTTON_HTML_ID);
@@ -95,6 +95,15 @@ function cookiesToJSON(cookieString) {
     return output;
 }
 
+// function jsonToCookieString(cookieJSON) {
+//     let result = "";
+//     for (const attr in cookieJSON) {
+//         result = result.concat(`; ${attr}=${cookieJSON[attr]}`);
+//     };
+//     console.log(`Created cookie string: "${result}"`);
+//     return result;
+// }
+
 function getVideos() {
     // Contacts our servers to obtain the video IDs and URLs.
     // TODO: fetch from cookies instead?
@@ -151,11 +160,16 @@ function createLogEntry(vimeo_data, data_label, video_position, video_id) {
         let _vimeo_percent = parseVimeoResponse(vimeo_data, "percent");
         let _vimeo_percent_percent = Number(_vimeo_percent * 100).toFixed(1);
 
+        // console.log(`${_vimeo_seconds}, ${_vimeo_duration}, ${_vimeo_percent}`);
+
         if (data_label.includes("PLAYED") && _vimeo_seconds === 0 && _vimeo_percent === 0) {
             logEntry.type = "STARTED";
         }
-        if (data_label.includes("PAUSED") && _vimeo_seconds === _vimeo_duration && _vimeo_percent === 1) {
+        if (data_label.includes("PAUSED") && _vimeo_percent === 1) {
             // Finishing a video creates a "pause" event
+            // Originally included a check for _vimeo_seconds === _vimeo_duration, BUT:
+            // on some videos, _vimeo_seconds != _vimeo_duration when the video finishes
+            // Could improve with a threshold, maybe if _vimeo_seconds was > 98% of _vimeo_duration?
             logEntry.type = "FINISHED";
         }
 
@@ -352,6 +366,8 @@ async function uploadVideoSelection() {
 
         videoPageEndTime = getUTCTimestampNow();
 
+        document.cookie = `completed_screen=${thisScreen}`;
+
         const requestOptions = {
             method: "POST",
             headers: {
@@ -376,7 +392,7 @@ async function uploadVideoSelection() {
         }
         const url = `${server}/video_selected?key=${access_key}`;
         await fetch(url, requestOptions);
-
+        window.location.href = `${server}/survey/videos?key=${access_key}&screen=${thisScreen + 1}`;
     } else {
         alert("Please finish watching all videos before making a selection.");
     }
