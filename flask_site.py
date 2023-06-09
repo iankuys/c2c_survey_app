@@ -8,6 +8,8 @@ import emails
 import mindlib
 import redcap_helpers
 
+FLASK_APP_PATH = "/c2c-retention-dce/survey"
+
 # The REDCap variable in this experiment's REDCap project that contains unique hashed C2C IDs
 HASHED_ID_EXPERIMENT_REDCAP_VAR = "access_key"
 
@@ -231,15 +233,15 @@ def index():
         resp = make_response(
             render_template("index.html", key=hashed_id, c2c_id=access_keys_to_c2c_ids[hashed_id])
         )
-        resp.set_cookie("v1_id", four_videos[0])
-        resp.set_cookie("v1_url", VIDEOS[four_videos[0]])
-        resp.set_cookie("v2_id", four_videos[1])
-        resp.set_cookie("v2_url", VIDEOS[four_videos[1]])
-        resp.set_cookie("v3_id", four_videos[2])
-        resp.set_cookie("v3_url", VIDEOS[four_videos[2]])
-        resp.set_cookie("v4_id", four_videos[3])
-        resp.set_cookie("v4_url", VIDEOS[four_videos[3]])
-        resp.set_cookie("completed_screen", "")
+        resp.set_cookie(key="v1_id", value=four_videos[0])
+        resp.set_cookie(key="v1_url", value=VIDEOS[four_videos[0]])
+        resp.set_cookie(key="v2_id", value=four_videos[1])
+        resp.set_cookie(key="v2_url", value=VIDEOS[four_videos[1]])
+        resp.set_cookie(key="v3_id", value=four_videos[2])
+        resp.set_cookie(key="v3_url", value=VIDEOS[four_videos[2]])
+        resp.set_cookie(key="v4_id", value=four_videos[3])
+        resp.set_cookie(key="v4_url", value=VIDEOS[four_videos[3]])
+        resp.set_cookie(key="completed_screen", value="0", path=FLASK_APP_PATH)
         return resp
     return render_template("index.html")
 
@@ -294,11 +296,21 @@ def videos():
                 return render_template("videos.html")
 
             # Check for previous screen completion
-            most_recent_completed_screen = request.cookies["completed_screen"]
-            print("Most recent completed screen (via cookie):", most_recent_completed_screen)
-            # TODO: set this screen to the correct screen (check if users are manipulating the URL)
-            # TODO: if this is screen 2, make a REDCap API call to get the next 2 videos and
-            #       set the following cookies: v5_id, v5_url, v6_id, v6_url
+            try:
+                most_recent_completed_screen = int(request.cookies["completed_screen"])
+                print("Most recent completed screen (via cookie):", most_recent_completed_screen)
+                screen_to_serve = most_recent_completed_screen + 1
+            except ValueError:
+                return render_template("videos.html")
+
+            if not scr == screen_to_serve:
+                print(f"Incorrect screen accessed ({scr})!! Serving screen {screen_to_serve}")
+                scr = screen_to_serve
+                # This serves the correct screen, BUT the URL will still have the incorrect
+                # screen that the user provided
+
+            # TODO: if most_recent_completed_screen = 2, make a REDCap API call to get the next
+            # 2 videos and set the following cookies: v5_id, v5_url, v6_id, v6_url
 
             if scr not in ALLOWED_SCREENS:
                 return render_template("videos.html")

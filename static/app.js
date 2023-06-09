@@ -30,10 +30,11 @@ const _params = new Proxy(new URLSearchParams(window.location.search), {
     get: (searchParams, prop) => searchParams.get(prop),
 });
 const access_key = _params.key;
-const thisScreen = parseInt(_params.screen);
+const thisScreenFromURL = parseInt(_params.screen);
+let mostCompletedScreen = 0;
 
-var finalSelectionButton = document.getElementById(VIDEO_SUBMIT_BUTTON_HTML_ID);
-var finalSelectionLoadingButton = document.getElementById(VIDEO_SUBMIT_LOADING_BUTTON_HTML_ID);
+const finalSelectionButton = document.getElementById(VIDEO_SUBMIT_BUTTON_HTML_ID);
+const finalSelectionLoadingButton = document.getElementById(VIDEO_SUBMIT_LOADING_BUTTON_HTML_ID);
 
 //// Helpers ////
 
@@ -104,18 +105,17 @@ function cookiesToJSON(cookieString) {
 //     return result;
 // }
 
-function getVideos() {
+function getVideos(cookiesJSON) {
     // Contacts our servers to obtain the video IDs and URLs.
     // TODO: fetch from cookies instead?
     // {vidA_id: "aa", vidA_url: "aaa", vidB_id: "bb", vidB_url: "bbb"}
     // const url = `${server}/get_videos?key=${access_key}`;
     // const response = await fetch(url);
     // const vids = await response.json(); // is await necessary here?
-    let allCookies = cookiesToJSON(document.cookie);
     result = {};
-    for (const c in allCookies) {
+    for (const c in cookiesJSON) {
         if (c.startsWith("v") && (c.endsWith("_id") || c.endsWith("_url"))) {
-            result[c] = allCookies[c];
+            result[c] = cookiesJSON[c];
         }
     }
     return result;
@@ -203,7 +203,10 @@ class VideoChoice {
 }
 
 async function setupVideoPlayer() {
-    let allIDsAndURLs = getVideos();
+    let allCookies = cookiesToJSON(document.cookie);
+
+    let allIDsAndURLs = getVideos(allCookies);
+    mostCompletedScreen = parseInt(allCookies["completed_screen"]);
 
     videoA = new VideoChoice(allIDsAndURLs, VIDEO_A_HTML_ID, VIDEO_A_SELECT_BUTTON_HTML_ID, VIDEO_A_MESSAGE_BOX_HTML_ID);
     videoB = new VideoChoice(allIDsAndURLs, VIDEO_B_HTML_ID, VIDEO_B_SELECT_BUTTON_HTML_ID, VIDEO_B_MESSAGE_BOX_HTML_ID);
@@ -221,7 +224,7 @@ async function setupVideoPlayer() {
     console.log(`Loaded Video B: ${videoB.getLog()}`);
 
     videoPageStartTime = getUTCTimestampNow();
-    console.log(`Survey screen ${thisScreen} started at ${videoPageStartTime}`);
+    console.log(`Most recently completed screen: ${mostCompletedScreen} (screen from URL: ${thisScreenFromURL}) started at ${videoPageStartTime}`);
     console.log(`Loaded videos ${videoA.vid_id} (pos ${videoA.position}) and ${videoB.vid_id} (pos ${videoB.position})`);
 
     function setupPlayerEvents(videoObj, otherVideoObj) {
@@ -366,7 +369,9 @@ async function uploadVideoSelection() {
 
         videoPageEndTime = getUTCTimestampNow();
 
-        document.cookie = `completed_screen=${thisScreen}`;
+        // Add 1 to the most completed screen to get THIS screen
+        let thisCompletedScreen = mostCompletedScreen + 1;
+        document.cookie = `completed_screen=${thisCompletedScreen}`;
 
         const requestOptions = {
             method: "POST",
@@ -375,7 +380,7 @@ async function uploadVideoSelection() {
             },
             body: JSON.stringify({
                 user_agent: navigator.userAgent,
-                screen: thisScreen,
+                screen: thisCompletedScreen,
                 screen_time_start: videoPageStartTime,
                 vidA_playback_time_start: "(temp A start time)",
                 vidA_playback_time_end: "(temp A end time)",
@@ -392,7 +397,7 @@ async function uploadVideoSelection() {
         }
         const url = `${server}/video_selected?key=${access_key}`;
         await fetch(url, requestOptions);
-        window.location.href = `${server}/survey/videos?key=${access_key}&screen=${thisScreen + 1}`;
+        window.location.href = `${server}/survey/videos?key=${access_key}&screen=${thisCompletedScreen + 1}`;
     } else {
         alert("Please finish watching all videos before making a selection.");
     }
