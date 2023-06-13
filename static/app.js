@@ -106,12 +106,6 @@ function cookiesToJSON(cookieString) {
 // }
 
 function getVideos(cookiesJSON) {
-    // Contacts our servers to obtain the video IDs and URLs.
-    // TODO: fetch from cookies instead?
-    // {vidA_id: "aa", vidA_url: "aaa", vidB_id: "bb", vidB_url: "bbb"}
-    // const url = `${server}/get_videos?key=${access_key}`;
-    // const response = await fetch(url);
-    // const vids = await response.json(); // is await necessary here?
     result = {};
     for (const c in cookiesJSON) {
         if (c.startsWith("v") && (c.endsWith("_id") || c.endsWith("_url"))) {
@@ -121,7 +115,7 @@ function getVideos(cookiesJSON) {
     return result;
 }
 
-function getUTCTimestampNow() {
+function getUTCTimestampNow(includeMilliseconds = true) {
     // YYYY-MM-DD hh:mm:ss.mis
     const d = new Date();
     let year = String(d.getUTCFullYear()).padStart(4, "0");
@@ -130,6 +124,9 @@ function getUTCTimestampNow() {
     let hours = String(d.getUTCHours()).padStart(2, "0");
     let minutes = String(d.getUTCMinutes()).padStart(2, "0");
     let seconds = String(d.getUTCSeconds()).padStart(2, "0");
+    if (!includeMilliseconds) {
+        return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+    }
     let milliseconds = String(d.getUTCMilliseconds()).padStart(3, "0");
     return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}.${milliseconds}`;
 }
@@ -188,8 +185,8 @@ class VideoChoice {
         this.messageBoxID = messageBoxHTMLID;
 
         this.logs = [];
-        this.startTimestamp = "DEFAULT-START";
-        this.endTimestamp = "DEFAULT-END";
+        this.startTimestamp = "";
+        this.endTimestamp = "";
         this.skipped = false;
         this.pauseCount = 0;
         this.watchCount = 0;
@@ -223,7 +220,7 @@ async function setupVideoPlayer() {
     console.log(`Loaded Video A: ${videoA.getLog()}`);
     console.log(`Loaded Video B: ${videoB.getLog()}`);
 
-    videoPageStartTime = getUTCTimestampNow();
+    videoPageStartTime = getUTCTimestampNow(includeMilliseconds = false);
     console.log(`Most recently completed screen: ${mostCompletedScreen} (screen from URL: ${thisScreenFromURL}) started at ${videoPageStartTime}`);
     console.log(`Loaded videos ${videoA.vid_id} (pos ${videoA.position}) and ${videoB.vid_id} (pos ${videoB.position})`);
 
@@ -243,6 +240,10 @@ async function setupVideoPlayer() {
                     });
                 }
             });
+            if (videoObj.startTimestamp == "") {
+                videoObj.startTimestamp = getUTCTimestampNow(includeMilliseconds = false);
+                console.log(`Set video @ pos ${videoObj.position} start time to ${videoObj.startTimestamp}`);
+            }
             videoObj.logs.push(createLogEntry(data, "PLAYED AT", videoObj.position, videoObj.vid_id));
             videoObj.playbackPosition = parseVimeoResponse(data, "seconds");
         })
@@ -263,13 +264,13 @@ async function setupVideoPlayer() {
             videoObj.logs.push(createLogEntry(data, "VIDEO SPEED CHANGED TO", videoObj.position, videoObj.vid_id));
         })
         videoObj.player.on('seeked', function (data) {
+            // Important playback positions in seconds
             let positionBeforeSeek = videoObj.playbackPosition;
             let positionAfterSeek = parseVimeoResponse(data, "seconds");
             // console.log(`Video ${videoObj.position} (ID ${videoObj.vid_id}): playback position BEFORE seek: ${positionBeforeSeek}`)
             if (positionBeforeSeek < positionAfterSeek) {
                 // Don't allow this view to count as "watched" if the user skips ahead
                 videoObj.logs.push(createLogEntry(data, "SEEKED AHEAD TO", videoObj.position, videoObj.vid_id));
-                // console.log(`Video ${videoObj.position} seeked AHEAD`)
                 if (!videoObj.finished) {
                     console.log(`Video ${videoObj.position} - not counting this view`)
                     _videoMessageBoxElement.innerText = "❌ Video not yet finished ❌\nPlease do not skip ahead in the video.";
@@ -312,6 +313,8 @@ async function setupVideoPlayer() {
                 // There were no skips: enable the selection button
                 videoObj.finished = true;
                 videoObj.watchCount = videoObj.watchCount + 1;
+                videoObj.endTimestamp = getUTCTimestampNow(includeMilliseconds = false);
+                console.log(`Set video @ pos ${videoObj.position} end time to ${videoObj.endTimestamp}`);
                 _videoMessageBoxElement.innerText = "✅ Video finished ✅";
             } else {
                 // There were skips
@@ -367,7 +370,7 @@ async function uploadVideoSelection() {
         }
         console.log(`User selected this video: ${selectedVideo.getLog()}`);
 
-        videoPageEndTime = getUTCTimestampNow();
+        videoPageEndTime = getUTCTimestampNow(includeMilliseconds = false);
 
         // Add 1 to the most completed screen to get THIS screen
         let thisCompletedScreen = mostCompletedScreen + 1;
@@ -382,12 +385,12 @@ async function uploadVideoSelection() {
                 user_agent: navigator.userAgent,
                 screen: thisCompletedScreen,
                 screen_time_start: videoPageStartTime,
-                vidA_playback_time_start: "(temp A start time)",
-                vidA_playback_time_end: "(temp A end time)",
+                vidA_playback_time_start: videoA.startTimestamp,
+                vidA_playback_time_end: videoA.endTimestamp,
                 vidA_watch_count: videoA.watchCount,
                 vidA_logs: videoA.logs,
-                vidB_playback_time_start: "(temp B start time)",
-                vidB_playback_time_end: "(temp B end time)",
+                vidB_playback_time_start: videoB.startTimestamp,
+                vidB_playback_time_end: videoB.endTimestamp,
                 vidB_watch_count: videoB.watchCount,
                 vidB_logs: videoB.logs,
                 selected_vid_id: selectedVideo.vid_id,
