@@ -163,7 +163,7 @@ function createLogEntry(vimeo_data, data_label, video_position, video_id) {
         if (data_label.includes("PLAYED") && _vimeo_seconds === 0 && _vimeo_percent === 0) {
             logEntry.type = "STARTED";
         }
-        if (data_label.includes("PAUSED") && _vimeo_percent === 1) {
+        if (data_label.includes("PAUSED") && _vimeo_percent >= 0.997) {
             // Finishing a video creates a "pause" event
             // Originally included a check for _vimeo_seconds === _vimeo_duration, BUT:
             // on some videos, _vimeo_seconds != _vimeo_duration when the video finishes
