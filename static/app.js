@@ -135,10 +135,11 @@ function createLogEntry(vimeo_data, data_label, video_position, video_id) {
     const UTCTimestamp = getUTCTimestampNow();
 
     // Base log entry - modify or add to this depending on event type and event data
+    // Will be sent to REDCap in plain text, so make as lightweight as possible
     let logEntry = {
-        position: video_position,
-        vid_id: video_id,
-        timestamp: UTCTimestamp,
+        // position: video_position,
+        // vid_id: video_id,
+        tm: UTCTimestamp,
         type: data_label
     }
 
@@ -153,7 +154,7 @@ function createLogEntry(vimeo_data, data_label, video_position, video_id) {
     } else {
         // Default event type that includes time data (seconds, duration, percent)
         let _vimeo_seconds = parseVimeoResponse(vimeo_data, "seconds");
-        let _vimeo_duration = parseVimeoResponse(vimeo_data, "duration");
+        // let _vimeo_duration = parseVimeoResponse(vimeo_data, "duration");
         let _vimeo_percent = parseVimeoResponse(vimeo_data, "percent");
         let _vimeo_percent_percent = Number(_vimeo_percent * 100).toFixed(1);
 
