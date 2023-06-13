@@ -1,3 +1,4 @@
+import json
 from typing import List
 
 import uvicorn
@@ -16,6 +17,17 @@ import redcap_helpers
 URL_PREFIX = "c2c-retention-dce"
 
 VIDEOS = mindlib.json_to_dict("./content/videos.json")
+
+
+################################
+############ CONFIG ############
+
+
+def transform_logs(log_list: list[dict]) -> str:
+    # TODO: trim logs further: don't present as list of JSON objects, maybe lines instead
+    print("Formatting these logs:")
+    print(log_list)
+    return json.dumps(log_list)  # temp
 
 
 ################################
@@ -48,40 +60,68 @@ class VideoPageIn(BaseModel):
     screen_time_end: str
 
 
-class VideosOut(BaseModel):
-    """Data about 2 videos to send to participants."""
+# class VideosOut(BaseModel):
+#     """Data about 2 videos to send to participants."""
 
-    vidA_id: str
-    vidA_url: str
-    vidB_id: str
-    vidB_url: str
+#     vidA_id: str
+#     vidA_url: str
+#     vidB_id: str
+#     vidB_url: str
 
 
 @app.post(f"/{URL_PREFIX}/video_selected")
 async def get_video_choice(video_page_data: VideoPageIn, key: str | None = None) -> None:
     if key:
-        print(f"User '{key}' ({video_page_data.user_agent}) finished a survey page")
-        print(
-            f"\tSelected video with ID '{video_page_data.selected_vid_id}' @ pos {video_page_data.selected_vid_position} (screen {video_page_data.screen})"
+        # print(f"User '{key}' ({video_page_data.user_agent}) finished a survey page")
+        # print(
+        #     f"\tSelected video with ID '{video_page_data.selected_vid_id}' @ pos {video_page_data.selected_vid_position} (screen {video_page_data.screen})"
+        # )
+        # print(
+        #     f"\tPage duration: from {video_page_data.screen_time_start} to {video_page_data.screen_time_end}"
+        # )
+        # print(f"\tVideo A:")
+        # print(
+        #     f"\t\tWatched from {video_page_data.vidA_playback_time_start} - {video_page_data.vidA_playback_time_end}"
+        # )
+        # print(f"\t\t{video_page_data.vidA_watch_count} play(s)")
+        # print(f"\t\tLogs: {video_page_data.vidA_logs}")
+        # print(f"\tVideo B:")
+        # print(
+        #     f"\t\tWatched from {video_page_data.vidB_playback_time_start} - {video_page_data.vidB_playback_time_end}"
+        # )
+        # print(f"\t\t{video_page_data.vidB_watch_count} play(s)")
+        # print(f"\t\tLogs: {video_page_data.vidB_logs}")
+
+        # TODO: create records for event "start_arm_1" (might handle this in Flask, not here)
+        # TODO: handle separate API calls for these REDCap vars in "start_arm_1":
+        # - survey_start_tm
+        #   - when user gets disclaimer page?
+        #   - when user starts screen 1?
+        # - survey_end_tm
+        #   - when screen 3 ends?
+        #   - when the bonus text questions are done?
+        redcap_video_page_record = {
+            "access_key": key,
+            "redcap_event_name": f"screen{video_page_data.screen}_arm_1",
+            "screen_tm_start": video_page_data.screen_time_start,
+            "video_a_tm_start": video_page_data.vidA_playback_time_start,
+            "video_a_tm_end": video_page_data.vidA_playback_time_end,
+            "video_a_playcount": video_page_data.vidA_watch_count,
+            "video_a_logs": transform_logs(video_page_data.vidA_logs),
+            "video_b_tm_start": video_page_data.vidB_playback_time_start,
+            "video_b_tm_end": video_page_data.vidB_playback_time_end,
+            "video_b_playcount": video_page_data.vidB_watch_count,
+            "video_b_logs": transform_logs(video_page_data.vidB_logs),
+            "video_selection": video_page_data.selected_vid_id,
+            "screen_tm_end": video_page_data.screen_time_end,
+            "video_complete": "2",
+        }
+        # record_as_str = json.dumps(redcap_video_page_record)
+        # print(record_as_str)
+        import_result = redcap_helpers.import_record(
+            secrets["C2C_DCV_API_TOKEN"], secrets["REDCAP_API_URL"], [redcap_video_page_record]
         )
-        print(
-            f"\tPage duration: from {video_page_data.screen_time_start} to {video_page_data.screen_time_end}"
-        )
-        print(f"\tVideo A:")
-        print(
-            f"\t\tWatched from {video_page_data.vidA_playback_time_start} - {video_page_data.vidA_playback_time_end}"
-        )
-        print(f"\t\t{video_page_data.vidA_watch_count} play(s)")
-        print(f"\t\tLogs: {video_page_data.vidA_logs}")
-        print(f"\tVideo B:")
-        print(
-            f"\t\tWatched from {video_page_data.vidB_playback_time_start} - {video_page_data.vidB_playback_time_end}"
-        )
-        print(f"\t\t{video_page_data.vidB_watch_count} play(s)")
-        print(f"\t\tLogs: {video_page_data.vidB_logs}")
-        # TODO: send data to REDCap
-        # + set this screen event's "video_complete" to "2"
-        # + set the 3rd screen's video A or B to this screen's selection - randomly? or pre-set?
+        print(f"Uploaded {import_result} record(s) to REDCap")
     else:
         print("No access key detected")
 
@@ -120,6 +160,7 @@ async def get_video_choice(video_page_data: VideoPageIn, key: str | None = None)
 
 @app.get("/")
 @app.get(f"/{URL_PREFIX}")
+@app.get(f"/{URL_PREFIX}/video_selected")
 async def redirect_to_flask():
     return RedirectResponse(f"/{URL_PREFIX}/survey", status_code=302)
 
