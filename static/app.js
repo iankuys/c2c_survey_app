@@ -135,12 +135,12 @@ function createLogEntry(vimeo_data, data_label, video_position, video_id) {
     const UTCTimestamp = getUTCTimestampNow();
 
     // Base log entry - modify or add to this depending on event type and event data
-    // Will be sent to REDCap in plain text, so make as lightweight as possible
     let logEntry = {
         // position: video_position,
         // vid_id: video_id,
         tm: UTCTimestamp,
-        type: data_label
+        type: data_label,
+        data: ""
     }
 
     if (data_label.includes("VOLUME")) {

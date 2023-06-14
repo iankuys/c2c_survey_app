@@ -1,4 +1,3 @@
-import json
 from typing import List
 
 import uvicorn
@@ -24,10 +23,19 @@ VIDEOS = mindlib.json_to_dict("./content/videos.json")
 
 
 def transform_logs(log_list: list[dict]) -> str:
-    # TODO: trim logs further: don't present as list of JSON objects, maybe lines instead
-    print("Formatting these logs:")
-    print(log_list)
-    return json.dumps(log_list)  # temp
+    """Transforms a list of log events from our survey pages' JavaScript into something that looks
+    more presentable and uses less data than raw JSON. The string returned from this function will
+    be uploaded directly to REDCap in plain text.
+    """
+    # return json.dumps(log_list)  # temp, lots of wasted space and kinda ugly
+    result = []
+    for log_line in log_list:
+        if "tm" in log_line and "type" in log_line:
+            formatted_log_line = f"[{log_line['tm']}] {log_line['type']}"
+            if "data" in log_line and len(log_line["data"]) > 0:
+                formatted_log_line += f": {log_line['data']}"
+            result.append(formatted_log_line)
+    return "\n".join(result)
 
 
 ################################
@@ -94,6 +102,8 @@ async def get_video_choice(video_page_data: VideoPageIn, key: str | None = None)
 
         # TODO: create records for event "start_arm_1" (might handle this in Flask, not here)
         # TODO: handle separate API calls for these REDCap vars in "start_arm_1":
+        # - user_agent
+        #   - capture on survey start or continue to capture per-survey page?
         # - survey_start_tm
         #   - when user gets disclaimer page?
         #   - when user starts screen 1?
