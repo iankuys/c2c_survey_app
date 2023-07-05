@@ -131,7 +131,7 @@ async def get_video_choice(video_page_data: VideoPageIn, key: str | None = None)
         import_result = redcap_helpers.import_record(
             secrets["C2C_DCV_API_TOKEN"], secrets["REDCAP_API_URL"], [redcap_video_page_record]
         )
-        print(f"Uploaded {import_result} record(s) to REDCap")
+        print(f"[{key}] Uploaded {import_result} record(s) to REDCap")
     else:
         print("No access key detected")
 

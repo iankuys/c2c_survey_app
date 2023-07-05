@@ -24,10 +24,11 @@ BUBBLE_MESSAGES = {
     "missing_key": "Missing access key.",
     "v01": "Failed to load videos. Please try starting the survey again.",  # missing cookies
     "v02": "Failed to load videos. Please try starting the survey again.",  # missing "screen" URL param
+    "s01": "An error occured with loading the next page. Please contact UCI MIND IT and provide your access key.",  # Couldn't generate screen 3 due to missing video IDs
     "unknown": "Unknown error.",
 }
 
-# List of screen numbers that we are able to support
+# List of screen numbers that this survey has
 ALLOWED_SCREENS = [1, 2, 3]
 
 VIDEOS = mindlib.json_to_dict("./content/videos.json")
@@ -85,7 +86,7 @@ def check_email_addr_and_send_email(
     our_from_email_password: str,
 ) -> None:
     """If applicable, sends a reminder email to a user containing their access key for this experiment."""
-    print(f"Checking email {user_submitted_email_address}")
+    print(f"[{user_submitted_email_address}] - checking email to send access key")
     active_c2cv3_emails = redcap_helpers.export_redcap_report(
         flask_app.config["C2CV3_API_TOKEN"],
         flask_app.config["REDCAP_API_URL"],
@@ -101,13 +102,13 @@ def check_email_addr_and_send_email(
             c2c_id = record["record_id"]
             c2c_ids_to_access_keys = create_id_mapping(reversed=True)
             if c2c_id not in c2c_ids_to_access_keys:
-                print(f"C2C ID {c2c_id} is not active")
+                print(f"[{user_submitted_email_address}] C2C ID {c2c_id} is not active")
                 return
 
             access_key_to_send = c2c_ids_to_access_keys[c2c_id]
             if len(access_key_to_send) == 0:
                 print(
-                    f"C2C ID {c2c_id} is active, but doesn't have an access key for this experiment"
+                    f"[{user_submitted_email_address}] C2C ID {c2c_id} is active, but doesn't have an access key for this experiment"
                 )
                 return
 
@@ -120,9 +121,7 @@ def check_email_addr_and_send_email(
                 our_from_email_password,
             )
             return
-    print(
-        f"Email '{user_submitted_email_address}' not found in the list of active C2C participants"
-    )
+    print(f"[{user_submitted_email_address}] not found in the list of active C2C participants")
     return
 
 
@@ -148,9 +147,8 @@ def index():
         access_keys_to_c2c_ids = create_id_mapping()
 
         if hashed_id not in access_keys_to_c2c_ids:
-            print(f"Access key '{hashed_id}' not found in the report from C2Cv3")
             print(
-                "If this key is a legitimate hashed ID, then the user has withdrawn from the C2C study."
+                f"[{hashed_id}] key not found in the C2Cv3 report- if this key is a legitimate hashed ID, then the user has withdrawn from the C2C study."
             )
             return render_template("index.html", error_message=BUBBLE_MESSAGES["bad_key"])
 
@@ -187,7 +185,7 @@ def index():
                     four_videos.append(r["video_a"])
                     four_videos.append(r["video_b"])
             print(
-                f"Experiment record '{hashed_id}' (C2C ID {access_keys_to_c2c_ids[hashed_id]}) was already created with videos {four_videos})"
+                f"[{hashed_id}] Experiment record (C2C ID {access_keys_to_c2c_ids[hashed_id]}) already created with videos {four_videos})"
             )
         else:
             # New survey participant
@@ -223,7 +221,7 @@ def index():
                 },
             ]
             print(
-                f"Creating NEW experiment record '{hashed_id}' (C2C ID {access_keys_to_c2c_ids[hashed_id]}) with the following videos: {four_videos}"
+                f"[{hashed_id}] Creating NEW experiment record (C2C ID {access_keys_to_c2c_ids[hashed_id]}) with videos {four_videos}"
             )
             redcap_helpers.import_record(
                 flask_app.config["C2C_DCV_API_TOKEN"],
@@ -276,13 +274,13 @@ def videos():
     if "key" in request.args and len(request.args["key"]) > 0:
         hashed_id = sanitize_key(request.args["key"])
         if len(hashed_id) < 1:
-            print("This key failed sanitization:", request.args["key"])
+            print(f"This key failed sanitization: {request.args['key']}")
             return redirect(url_for("index", error_code="bad_key"), code=301)
 
         access_keys_to_c2c_ids = create_id_mapping()
 
         if hashed_id not in access_keys_to_c2c_ids:
-            print(f"Access key '{hashed_id}' not found in the report from C2Cv3")
+            print(f"[{hashed_id}] key not found in the C2Cv3 report")
             return redirect(url_for("index", error_code="bad_key"))
 
         if (
@@ -298,19 +296,35 @@ def videos():
             # Check for previous screen completion
             try:
                 most_recent_completed_screen = int(request.cookies["completed_screen"])
-                print("Most recent completed screen (via cookie):", most_recent_completed_screen)
+                print(
+                    f"[{hashed_id}] Most recent completed screen (via cookie): {most_recent_completed_screen}"
+                )
                 screen_to_serve = most_recent_completed_screen + 1
             except ValueError:
                 return render_template("videos.html")
 
-            if not scr == screen_to_serve:
-                print(f"Incorrect screen accessed ({scr})!! Serving screen {screen_to_serve}")
+            if scr != screen_to_serve:
+                print(
+                    f"[{hashed_id}] Incorrect screen accessed ({scr})!! Serving screen {screen_to_serve}"
+                )
                 scr = screen_to_serve
-                # This serves the correct screen, BUT the URL will still have the incorrect
-                # screen that the user provided
+                # From the user's perspective: the URL will contain an incorrect screen number but
+                # the correct screen will be served
 
-            # TODO: if most_recent_completed_screen = 2, make a REDCap API call to get the next
-            # 2 videos and set the following cookies: v5_id, v5_url, v6_id, v6_url
+            if most_recent_completed_screen == 2:
+                print(f"[{hashed_id}] Getting videos for Screen 3....")
+                chosen_videos = redcap_helpers.get_first_two_selected_videos(
+                    flask_app.config["C2C_DCV_API_TOKEN"],
+                    flask_app.config["REDCAP_API_URL"],
+                    hashed_id,
+                )
+                print(f"[{hashed_id}] Got previously selected videos: {chosen_videos}")
+                if chosen_videos == ["", ""]:
+                    return redirect(url_for("index", error_code="s01"), code=301)
+                # Videos' URLs are already mapped in this script's global constant `VIDEOS`
+                # import (upload) a record with the event "screen3_arm_1" and "video_a"/"video_b" containing
+                #       a video from `chosen_videos`
+                # set the following cookies: v5_id, v5_url, v6_id, v6_url
 
             if scr not in ALLOWED_SCREENS:
                 return render_template("videos.html")
@@ -340,7 +354,7 @@ def videos():
             vid_a_pos = (scr * 2) - 1
             vid_b_pos = scr * 2
 
-            print(f"User {hashed_id} starting screen {scr} (videos {vid_a_pos} & {vid_b_pos})")
+            print(f"[{hashed_id}] Starting screen {scr} (videos {vid_a_pos} & {vid_b_pos})")
 
             return render_template(
                 "videos.html", screen=scr, vid_a_position=vid_a_pos, vid_b_position=vid_b_pos

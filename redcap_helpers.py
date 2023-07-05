@@ -123,3 +123,43 @@ def export_dcv_video_data(token: str, url: str, recordid: str) -> list[dict]:
             )
 
     return result
+
+
+def get_first_two_selected_videos(token: str, url: str, recordid: str) -> list[str]:
+    request_params = {
+        "token": token,
+        "content": "record",
+        "action": "export",
+        "format": "json",
+        "type": "flat",
+        "csvDelimiter": "",
+        "records[0]": recordid,
+        "fields[0]": "access_key",
+        "fields[1]": "video_selection",
+        "events[0]": "screen1_arm_1",
+        "events[1]": "screen2_arm_1",
+        "rawOrLabel": "raw",
+        "rawOrLabelHeaders": "raw",
+        "exportCheckboxLabel": "false",
+        "exportSurveyFields": "false",
+        "exportDataAccessGroups": "false",
+        "returnFormat": "json",
+    }
+    r = requests.post(url, data=request_params)
+    result = json.loads(r.text)
+    if type(result) == dict:
+        if "error" in result:
+            raise REDCapError(
+                f"REDCap API returned an error while exporting video data for the record: '{recordid}':\n{result['error']}"
+            )
+    if type(result) == list and len(result) == 2:
+        if (
+            "video_selection" in result[0]
+            and len(result[0]["video_selection"]) > 0
+            and "video_selection" in result[1]
+            and len(result[1]["video_selection"]) > 0
+        ):
+            return [result[0]["video_selection"], result[1]["video_selection"]]
+        else:
+            print(f"[{recordid}] - missing video selections in REDCap")
+    return ["", ""]
