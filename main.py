@@ -80,6 +80,12 @@ class VideoPageIn(BaseModel):
 @app.post(f"/{URL_PREFIX}/video_selected")
 async def get_video_choice(video_page_data: VideoPageIn, key: str | None = None) -> None:
     if key:
+        if len(video_page_data.selected_vid_id) > 1 and (
+            video_page_data.selected_vid_id[0] == video_page_data.selected_vid_id[-1] == '"'
+            or video_page_data.selected_vid_id[0] == video_page_data.selected_vid_id[-1] == "'"
+        ):
+            # Remove bounding single- or double-quotes from the selected video ID string
+            video_page_data.selected_vid_id = video_page_data.selected_vid_id[1:-1]
         # print(f"User '{key}' ({video_page_data.user_agent}) finished a survey page")
         # print(
         #     f"\tSelected video with ID '{video_page_data.selected_vid_id}' @ pos {video_page_data.selected_vid_position} (screen {video_page_data.screen})"
@@ -100,7 +106,6 @@ async def get_video_choice(video_page_data: VideoPageIn, key: str | None = None)
         # print(f"\t\t{video_page_data.vidB_watch_count} play(s)")
         # print(f"\t\tLogs: {video_page_data.vidB_logs}")
 
-        # TODO: remove bounding quotation marks in "video_selection"
         # TODO: create records for event "start_arm_1" (might handle this in Flask, not here)
         # TODO: handle separate API calls for these REDCap vars in "start_arm_1":
         # - user_agent
