@@ -185,14 +185,14 @@ def index():
                     four_videos.append(r["video_a"])
                     four_videos.append(r["video_b"])
             print(
-                f"[{hashed_id}] Experiment record (C2C ID {access_keys_to_c2c_ids[hashed_id]}) already created with videos {four_videos})"
+                f"[{hashed_id}] Experiment record (C2C ID {access_keys_to_c2c_ids[hashed_id]}) already created with videos {four_videos}"
             )
         else:
             # New survey participant
             # Shuffle all video keys, and save the first four from the shuffled list
-            keys = list(VIDEOS.keys())
-            random.shuffle(keys)
-            four_videos = keys[0:4]
+            video_ids = list(VIDEOS.keys())
+            random.shuffle(video_ids)
+            four_videos = video_ids[0:4]
 
             # Add the record to the experiment's REDCap project and start the experiment
             new_record = [
