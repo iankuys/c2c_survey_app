@@ -100,6 +100,7 @@ async def get_video_choice(video_page_data: VideoPageIn, key: str | None = None)
         # print(f"\t\t{video_page_data.vidB_watch_count} play(s)")
         # print(f"\t\tLogs: {video_page_data.vidB_logs}")
 
+        # TODO: remove bounding quotation marks in "video_selection"
         # TODO: create records for event "start_arm_1" (might handle this in Flask, not here)
         # TODO: handle separate API calls for these REDCap vars in "start_arm_1":
         # - user_agent
