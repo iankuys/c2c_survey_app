@@ -29,7 +29,7 @@ BUBBLE_MESSAGES = {
 }
 
 # List of screen numbers that this survey has
-ALLOWED_SCREENS = [1, 2, 3]
+ALLOWED_SCREENS = [1, 2, 3, 4]
 
 VIDEOS = mindlib.json_to_dict("./content/videos.json")
 UNDEFINED_VID_ID_PLACEHOLDER = "UNDEFINED"
@@ -166,7 +166,7 @@ def index():
                 return render_template(
                     "index.html",
                     key=hashed_id,
-                    info_message="This survey has already been completed. Thank you for your participation!",
+                    info_message="This survey has been completed. Thank you for your participation!",
                 )
 
             # Got video data but the user hasn't finished the survey yet - don't assign any more videos
@@ -310,7 +310,9 @@ def videos():
                 scr = screen_to_serve
                 # From the user's perspective: the URL will contain an incorrect screen number but
                 # the correct screen will be served
-
+            resp_screen3 = make_response(
+                render_template("videos.html", screen=scr, vid_a_position=5, vid_b_position=6)
+            )
             if most_recent_completed_screen == 2:
                 print(f"[{hashed_id}] Getting videos for Screen 3....")
                 chosen_videos = redcap_helpers.get_first_two_selected_videos(
@@ -324,7 +326,18 @@ def videos():
                 # Videos' URLs are already mapped in this script's global constant `VIDEOS`
                 # import (upload) a record with the event "screen3_arm_1" and "video_a"/"video_b" containing
                 #       a video from `chosen_videos`
+
                 # set the following cookies: v5_id, v5_url, v6_id, v6_url
+
+                coinflip = random.randint(0, 1)
+                coin2 = coinflip - 1
+                v5_id = chosen_videos[coinflip]
+                v6_id = chosen_videos[coin2]
+
+                resp_screen3.set_cookie(key="v5_id", value=v5_id)
+                resp_screen3.set_cookie(key="v5_url", value=VIDEOS[v5_id])
+                resp_screen3.set_cookie(key="v6_id", value=v6_id)
+                resp_screen3.set_cookie(key="v6_url", value=VIDEOS[v6_id])
 
             if scr not in ALLOWED_SCREENS:
                 return render_template("videos.html")
@@ -355,10 +368,22 @@ def videos():
             vid_b_pos = scr * 2
 
             print(f"[{hashed_id}] Starting screen {scr} (videos {vid_a_pos} & {vid_b_pos})")
+            if most_recent_completed_screen < 2:
+                print("not yet...")
+                return render_template(
+                    "videos.html", screen=scr, vid_a_position=vid_a_pos, vid_b_position=vid_b_pos
+                )
+            elif most_recent_completed_screen == 2:
+                print("resp3 time :)")
+                return resp_screen3
+            else:
+                print("end result")
+                return render_template(
+                    "index.html",
+                    key=hashed_id,
+                    info_message="This survey has been completed. Thank you for your participation!",
+                )
 
-            return render_template(
-                "videos.html", screen=scr, vid_a_position=vid_a_pos, vid_b_position=vid_b_pos
-            )
         else:
             # No "screen" URL parameter
             return redirect(url_for("index", error_code="v02"), code=301)
