@@ -25,6 +25,7 @@ BUBBLE_MESSAGES = {
     "v01": "Failed to load videos. Please try starting the survey again.",  # missing cookies
     "v02": "Failed to load videos. Please try starting the survey again.",  # missing "screen" URL param
     "s01": "An error occured with loading the next page. Please contact UCI MIND IT and provide your access key.",  # Couldn't generate screen 3 due to missing video IDs
+    "survey_completed": "This survey has been completed. Thank you for your participation!",
     "unknown": "Unknown error.",
 }
 
@@ -136,8 +137,16 @@ def index():
         if error_code not in BUBBLE_MESSAGES:
             error_code = "unknown"
         return render_template("index.html", error_message=BUBBLE_MESSAGES[error_code])
+
+    if "msg" in request.args and len(request.args["msg"]) > 0:
+        message_code = request.args["msg"]
+        if message_code not in BUBBLE_MESSAGES:
+            return render_template("index.html", error_message=BUBBLE_MESSAGES["unknown"])
+        return render_template("index.html", info_message=BUBBLE_MESSAGES[message_code])
+
     if "sent_email" in request.args and len(request.args["sent_email"]) > 0:
         return render_template("email_sent.html")
+
     if "key" in request.args and len(request.args["key"]) > 0:
         hashed_id = sanitize_key(request.args["key"])
         if len(hashed_id) < 1:
@@ -166,7 +175,7 @@ def index():
                 return render_template(
                     "index.html",
                     key=hashed_id,
-                    info_message="This survey has already been completed. Thank you for your participation!",
+                    info_message=BUBBLE_MESSAGES["survey_completed"],
                 )
 
             # Got video data but the user hasn't finished the survey yet - don't assign any more videos
@@ -221,7 +230,7 @@ def index():
                 },
             ]
             print(
-                f"[{hashed_id}] Creating NEW experiment record (C2C ID {access_keys_to_c2c_ids[hashed_id]}) with videos {four_videos}"
+                f"[{hashed_id}] Creating NEW record (C2C ID {access_keys_to_c2c_ids[hashed_id]}) with videos {four_videos}"
             )
             redcap_helpers.import_record(
                 flask_app.config["C2C_DCV_API_TOKEN"],
@@ -310,33 +319,35 @@ def videos():
                 scr = screen_to_serve
                 # From the user's perspective: the URL will contain an incorrect screen number but
                 # the correct screen will be served
-            resp_screen3 = make_response(
-                render_template("videos.html", screen=scr, vid_a_position=5, vid_b_position=6)
-            )
-            if most_recent_completed_screen == 2:
-                print(f"[{hashed_id}] Getting videos for Screen 3....")
-                chosen_videos = redcap_helpers.get_first_two_selected_videos(
+
+            SERVE_SCREEN_3 = most_recent_completed_screen == 2
+            if SERVE_SCREEN_3:
+                resp_screen3 = make_response(
+                    render_template("videos.html", screen=scr, vid_a_position=5, vid_b_position=6)
+                )
+
+                # 2-list of strings: each is the ID of a video that was previously selected
+                chosen_video_ids = redcap_helpers.get_first_two_selected_videos(
                     flask_app.config["C2C_DCV_API_TOKEN"],
                     flask_app.config["REDCAP_API_URL"],
                     hashed_id,
                 )
-                print(f"[{hashed_id}] Got previously selected videos: {chosen_videos}")
-                if chosen_videos == ["", ""]:
+                print(f"[{hashed_id}] Got previously selected videos: {chosen_video_ids}")
+                if chosen_video_ids == ["", ""]:
                     return redirect(url_for("index", error_code="s01"), code=301)
 
-                # Videos' URLs are already mapped in this script's global constant `VIDEOS`
-                # set the following cookies: v5_id, v5_url, v6_id, v6_url
-                coinflip = random.randint(0, 1)
-                coin2 = coinflip - 1
-                v5_id = chosen_videos[coinflip]
-                v6_id = chosen_videos[coin2]
+                _vid5_id_index = random.randint(0, 1)  # 0 or 1
+                _vid6_id_index = _vid5_id_index - 1  # -1 or 0
+                v5_id = chosen_video_ids[_vid5_id_index]
+                v6_id = chosen_video_ids[_vid6_id_index]
 
+                # Set cookies for proper frontend behavior
                 resp_screen3.set_cookie(key="v5_id", value=v5_id)
                 resp_screen3.set_cookie(key="v5_url", value=VIDEOS[v5_id])
                 resp_screen3.set_cookie(key="v6_id", value=v6_id)
                 resp_screen3.set_cookie(key="v6_url", value=VIDEOS[v6_id])
-                # import (upload) a record with the event "screen3_arm_1" and "video_a"/"video_b" containing
-                #       a video from `chosen_videos`
+
+                # Create REDCap record with screen 3 data
                 record_screen3 = [
                     {
                         HASHED_ID_EXPERIMENT_REDCAP_VAR: hashed_id,
@@ -345,12 +356,12 @@ def videos():
                         "video_b": v6_id,
                     }
                 ]
-
                 redcap_helpers.import_record(
                     flask_app.config["C2C_DCV_API_TOKEN"],
                     flask_app.config["REDCAP_API_URL"],
                     record_screen3,
                 )
+                print(f"[{hashed_id}] Created REDCap record for Screen 3.")
 
             if scr not in ALLOWED_SCREENS:
                 return render_template("videos.html")
@@ -379,23 +390,17 @@ def videos():
             # screen 3 = videos 5 and 6, etc...
             vid_a_pos = (scr * 2) - 1
             vid_b_pos = scr * 2
-
             print(f"[{hashed_id}] Starting screen {scr} (videos {vid_a_pos} & {vid_b_pos})")
+
             if most_recent_completed_screen < 2:
-                print("not yet...")
                 return render_template(
                     "videos.html", screen=scr, vid_a_position=vid_a_pos, vid_b_position=vid_b_pos
                 )
-            elif most_recent_completed_screen == 2:
-                print("resp3 time :)")
+            elif SERVE_SCREEN_3:  # most_recent_completed_screen == 2
                 return resp_screen3
-            else:
-                print("end result")
-                return render_template(
-                    "index.html",
-                    key=hashed_id,
-                    info_message="This survey has been completed. Thank you for your participation!",
-                )
+
+            # TODO: temporary end of survey; maybe add a new text section for screen 4
+            return redirect(url_for("index", msg="survey_completed"), code=301)
 
         else:
             # No "screen" URL parameter
