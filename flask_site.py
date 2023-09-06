@@ -387,25 +387,16 @@ def videos():
                 print(f"[{hashed_id}] Created REDCap record for Screen 3.")
 
             if scr not in ALLOWED_SCREENS:
+                # could consult cookie here too
+                most_recent_completed_screen_from_redcap = redcap_helpers.get_most_recent_screen(
+                    flask_app.config["C2C_DCV_API_TOKEN"],
+                    flask_app.config["REDCAP_API_URL"],
+                    hashed_id,
+                )
+                if int(most_recent_completed_screen_from_redcap) == ALLOWED_SCREENS[-1]:
+                    # If they completed the final screen, serve the completion message
+                    return redirect(url_for("index", msg="survey_completed"), code=301)
                 return render_template("videos.html")
-
-            # Wanted to check for cookie availability, but Chrome cache was acting weird
-            # and locked me out of accessing the survey again if I cleared my cookies during
-            # the survey
-            # Even after I restarted the survey and restored the cookies, it would send me
-            # back to the index page with the cookie error
-            # if (
-            #     "v1_id" not in request.cookies
-            #     or "v1_url" not in request.cookies
-            #     or "v2_id" not in request.cookies
-            #     or "v2_url" not in request.cookies
-            #     or "v3_id" not in request.cookies
-            #     or "v3_url" not in request.cookies
-            #     or "v4_id" not in request.cookies
-            #     or "v4_url" not in request.cookies
-            # ):
-            #     print(f"Missing cookies for user {hashed_id}, screen {scr}")
-            #     return redirect(url_for("index", error_code="v01"), code=301)
 
             # Get the correct video positions for the current screen:
             # screen 1 = videos 1 and 2,
