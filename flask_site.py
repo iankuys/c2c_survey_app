@@ -30,7 +30,7 @@ BUBBLE_MESSAGES = {
 }
 
 # List of screen numbers that this survey has
-ALLOWED_SCREENS = [1, 2, 3, 4]
+ALLOWED_SCREENS = [1, 2, 3]
 
 VIDEOS = mindlib.json_to_dict("./content/videos.json")
 UNDEFINED_VID_ID_PLACEHOLDER = "UNDEFINED"
@@ -194,9 +194,17 @@ def index():
                 ):
                     four_videos.append(r["video_a"])
                     four_videos.append(r["video_b"])
-            print(
-                f"[{hashed_id}] Experiment record (C2C ID {access_keys_to_c2c_ids[hashed_id]}) already created with videos {four_videos}"
+            most_recent_completed_screen_from_redcap = redcap_helpers.get_most_recent_screen(
+                flask_app.config["C2C_DCV_API_TOKEN"],
+                flask_app.config["REDCAP_API_URL"],
+                hashed_id,
             )
+            print(
+                f"[{hashed_id}] Experiment record (C2C ID {access_keys_to_c2c_ids[hashed_id]}) already created with videos {four_videos} and completed screen {most_recent_completed_screen_from_redcap}"
+            )
+            if int(most_recent_completed_screen_from_redcap) == ALLOWED_SCREENS[-1]:
+                # If they completed the final screen, serve the completion message
+                return redirect(url_for("index", msg="survey_completed"), code=301)
         else:
             # New survey participant
             # Shuffle all video keys, and save the first four from the shuffled list
@@ -249,23 +257,20 @@ def index():
         resp.set_cookie(key="v3_url", value=VIDEOS[four_videos[2]])
         resp.set_cookie(key="v4_id", value=four_videos[3])
         resp.set_cookie(key="v4_url", value=VIDEOS[four_videos[3]])
+
+        # Set completed_screen cookie: the most recent screen the user completed
+        # Needs to be served in a path because the JS script has limited scope to where it can place the cookie
         if not already_started_survey:
             # Fresh start: user has no REDCap data
-            resp.set_cookie(key="completed_screen", value="0")
+            resp.set_cookie(key="completed_screen", value="0", path=FLASK_APP_PATH)
         elif "completed_screen" not in request.cookies:
             # User started the survey (they have REDCap data) and they cleared their cookies
             # Allows users to resume taking the survey
-            most_recent_completed_screen_from_redcap = redcap_helpers.get_most_recent_screen(
-                flask_app.config["C2C_DCV_API_TOKEN"],
-                flask_app.config["REDCAP_API_URL"],
-                hashed_id,
-            )
-            print(
-                f"[{hashed_id}] cleared cookies but is resuming survey - got most completed screen {most_recent_completed_screen_from_redcap} from REDCap"
-            )
+            print(f"[{hashed_id}] cleared cookies but is resuming survey")
             resp.set_cookie(
                 key="completed_screen",
                 value=most_recent_completed_screen_from_redcap,
+                path=FLASK_APP_PATH,
             )
         return resp
     return render_template("index.html")
