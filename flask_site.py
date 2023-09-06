@@ -250,7 +250,23 @@ def index():
         resp.set_cookie(key="v4_id", value=four_videos[3])
         resp.set_cookie(key="v4_url", value=VIDEOS[four_videos[3]])
         if not already_started_survey:
-            resp.set_cookie(key="completed_screen", value="0", path=FLASK_APP_PATH)
+            # Fresh start: user has no REDCap data
+            resp.set_cookie(key="completed_screen", value="0")
+        elif "completed_screen" not in request.cookies:
+            # User started the survey (they have REDCap data) and they cleared their cookies
+            # Allows users to resume taking the survey
+            most_recent_completed_screen_from_redcap = redcap_helpers.get_most_recent_screen(
+                flask_app.config["C2C_DCV_API_TOKEN"],
+                flask_app.config["REDCAP_API_URL"],
+                hashed_id,
+            )
+            print(
+                f"[{hashed_id}] cleared cookies but is resuming survey - got most completed screen {most_recent_completed_screen_from_redcap} from REDCap"
+            )
+            resp.set_cookie(
+                key="completed_screen",
+                value=most_recent_completed_screen_from_redcap,
+            )
         return resp
     return render_template("index.html")
 

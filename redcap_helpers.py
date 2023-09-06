@@ -163,3 +163,57 @@ def get_first_two_selected_videos(token: str, url: str, recordid: str) -> list[s
         else:
             print(f"[{recordid}] - missing video selections in REDCap")
     return ["", ""]
+
+
+def _get_screen_number(redcap_event_name: str, expected_event_name_prefix: str = "screen") -> int:
+    """Parses a REDCap event name like 'screen2_arm_1' and returns the number that
+    immediately follows the word 'screen' and precedes '_arm_'.
+    """
+    if not redcap_event_name.startswith(expected_event_name_prefix):
+        return 0
+    stop_index = redcap_event_name.find("_arm_")
+    start_index = len(expected_event_name_prefix)
+    screen_number = redcap_event_name[start_index:stop_index]
+    if len(screen_number) > 0 and screen_number.isdecimal():
+        return int(screen_number)
+    return 0
+
+
+def get_most_recent_screen(token: str, url: str, recordid: str) -> str:
+    request_params = {
+        "token": token,
+        "content": "record",
+        "action": "export",
+        "format": "json",
+        "type": "flat",
+        "csvDelimiter": "",
+        "records[0]": recordid,
+        "fields[0]": "access_key",
+        "fields[1]": "video_complete",
+        "events[0]": "screen1_arm_1",
+        "events[1]": "screen2_arm_1",
+        "events[2]": "screen3_arm_1",
+        "rawOrLabel": "raw",
+        "rawOrLabelHeaders": "raw",
+        "exportCheckboxLabel": "false",
+        "exportSurveyFields": "false",
+        "exportDataAccessGroups": "false",
+        "returnFormat": "json",
+    }
+    r = requests.post(url, data=request_params)
+    result = json.loads(r.text)
+    expected_number_of_screens = 3
+    if type(result) == dict:
+        if "error" in result:
+            raise REDCapError(
+                f"REDCap API returned an error while exporting most recent completed screen for the record: '{recordid}':\n{result['error']}"
+            )
+    most_recent_screen = 0
+    if type(result) == list and len(result) == expected_number_of_screens:
+        for screen_form in result:
+            if "video_complete" in screen_form and "redcap_event_name" in screen_form:
+                this_screen = _get_screen_number(screen_form["redcap_event_name"])
+                if screen_form["video_complete"] == "2" and this_screen > most_recent_screen:
+                    most_recent_screen = this_screen
+                    # print(f"[{recordid}] Updated most recent screen from REDCap: {most_recent_screen}")
+    return str(most_recent_screen)
