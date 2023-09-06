@@ -166,7 +166,8 @@ def index():
         )
         # print(survey_record)
 
-        if len(existing_dcv_video_data) > 0:
+        already_started_survey = len(existing_dcv_video_data) > 0
+        if already_started_survey:
             # The user has generated a set of videos already - they may have finished the survey already
 
             # TODO: Check the data from `existing_dcv_video_data` to set this bool
@@ -248,7 +249,8 @@ def index():
         resp.set_cookie(key="v3_url", value=VIDEOS[four_videos[2]])
         resp.set_cookie(key="v4_id", value=four_videos[3])
         resp.set_cookie(key="v4_url", value=VIDEOS[four_videos[3]])
-        resp.set_cookie(key="completed_screen", value="0", path=FLASK_APP_PATH)
+        if not already_started_survey:
+            resp.set_cookie(key="completed_screen", value="0", path=FLASK_APP_PATH)
         return resp
     return render_template("index.html")
 
@@ -326,7 +328,7 @@ def videos():
                     render_template("videos.html", screen=scr, vid_a_position=5, vid_b_position=6)
                 )
 
-                # 2-list of strings: each is the ID of a video that was previously selected
+                # List of 2 strings: each is the ID of a video that was previously selected
                 chosen_video_ids = redcap_helpers.get_first_two_selected_videos(
                     flask_app.config["C2C_DCV_API_TOKEN"],
                     flask_app.config["REDCAP_API_URL"],
