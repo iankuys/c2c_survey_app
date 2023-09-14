@@ -217,12 +217,14 @@ def index():
             video_ids = list(VIDEOS.keys())
             random.shuffle(video_ids)
             four_videos = video_ids[0:4]
+            start_time = mindlib.timestamp_now()
 
             # Add the record to the experiment's REDCap project and start the experiment
             new_record = [
                 {
                     HASHED_ID_EXPERIMENT_REDCAP_VAR: hashed_id,
                     "c2c_id": access_keys_to_c2c_ids[hashed_id],
+                    "survey_tm_start": start_time,
                     "user_agent": get_user_agent(),
                 },
                 {
