@@ -9,18 +9,18 @@
         <p>[DEBUG] This is screen <b><code>{{ screen }}</code></b></p>
         <div class="row">
             <div class="py-3 col">
-                <h2>Video {{ vid_a_position }}</h2>
+                <h2>Video A <!--{{ vid_a_position }}--></h2>
                 <div id="videoA">{{ vid_a_position }}</div>
                 <p id="videoAMessage">❌ Video not yet finished ❌</p>
                 <input type="radio" value="{{ vid_a_position }}" class="btn-check" name="options" id="videoASelect" autocomplete="off" onclick="activateSelectionButton()" disabled>
-                <label class="btn btn-outline-success" for="videoASelect">Select video {{ vid_a_position }}</label>
+                <label class="btn btn-outline-success" for="videoASelect">Select video A<!--{{ vid_a_position }}--></label>
             </div>
             <div class="py-3 col">
-                <h2>Video {{ vid_b_position }}</h2>
+                <h2>Video B <!--{{ vid_b_position }}--></h2>
                 <div id="videoB">{{ vid_b_position }}</div>
                 <p id="videoBMessage">❌ Video not yet finished ❌</p>
                 <input type="radio" value="{{ vid_b_position }}" class="btn-check" name="options" id="videoBSelect" autocomplete="off" onclick="activateSelectionButton()" disabled>
-                <label class="btn btn-outline-success" for="videoBSelect">Select video {{ vid_b_position }}</label>
+                <label class="btn btn-outline-success" for="videoBSelect">Select video B <!--{{ vid_b_position }}--></label>
             </div>
         </div>
         <div class="py-2 d-grid gap-2 col-6 mx-auto">
