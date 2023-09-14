@@ -8,6 +8,7 @@ import emails
 import mindlib
 import redcap_helpers
 
+
 FLASK_APP_PATH = "/c2c-retention-dce/survey"
 
 # The REDCap variable in this experiment's REDCap project that contains unique hashed C2C IDs
@@ -126,6 +127,11 @@ def check_email_addr_and_send_email(
     return
 
 
+def get_user_agent() -> str:
+    """Get the user-agent information (browser and device type) of the site's visitors"""
+    return request.headers.get("User-Agent")
+
+
 ################################
 ########### ENDPOINTS ##########
 
@@ -217,6 +223,7 @@ def index():
                 {
                     HASHED_ID_EXPERIMENT_REDCAP_VAR: hashed_id,
                     "c2c_id": access_keys_to_c2c_ids[hashed_id],
+                    "user_agent": get_user_agent(),
                 },
                 {
                     HASHED_ID_EXPERIMENT_REDCAP_VAR: hashed_id,
