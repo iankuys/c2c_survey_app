@@ -12,27 +12,13 @@
             style="text-decoration: none; color: #294f60;font-weight: bolder;">×</a>
     </div>{% endif %}
 
-    {% if key and c2c_id %}<p class="pb-1">[DEBUG] Your access key is: <b><code>{{ key }}</code></b> [DEBUG]</p>
-    <p class="pb-1">[DEBUG] Your original C2C ID is: <b><code>{{ c2c_id }}</code></b> [DEBUG]</p>
-    <p>Hello, I'm Josh Grill, Principal Investigator for the UC Irvine Consent-to-Contact (C2C) Registry. Thank you for your enrollment and participation in this retention study as part of the Registry. The C2C has been successful in achieving its goal of supporting research at UCI by accelerating recruitment to a wide variety of studies. Yet, this goal will be fully maximized by improving the rates of retention and renewal of those enrolled in the registry.</p>
-    <p>In this study, we will test whether you find specific retention video messages compelling. The video below repeats this information and describes what will come next.</p>
-    <p>When you are ready, you can click “NEXT” and you will be taken to a new page with two video windows. You should watch each video and then select the one that, to you, provides the most compelling message to get you and others to renew your information annually in the C2C registry. After this first pair of videos, you will repeat the process with a new pair of videos. In total, you will watch 10 pairs of videos (ranging in length from 10 seconds to 20 seconds) and each time select the one that you find most compelling. After watching all pairs, we will ask you to complete a short survey. In total, we expect that completing this study will take less than 15 minutes. Participants will be entered in a raffle to select multiple winners of $100 Amazon gift cards.</p>
-    <p>When you are ready, click “GET STARTED.”</p>
-    <p>[DEBUG] VIDEO GOES HERE</p>
-    <div class="pt-4 d-grid gap-2 col-6 mx-auto">
-        <a href="{{ url_for('videos', key=key, screen=1) }}" class="btn btn-primary btn-lg" id="submit_button">GET STARTED</a>
-        <button hidden type="button" class="btn btn-primary btn-lg disabled" id="loading_button">
-            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-            Loading....
-        </button>
-    </div>
-    {% else %}<p class="pb-1">We couldn't automatically detect an access key.</p>
+    <p class="pb-1">Welcome to the C2C Retention video survey!</p>
     <form action="{{ url_for('check') }}" method="POST">
-        <label for="key" class="pb-2">If you have your <b>access key</b>, please enter it here.<br />
+        <label for="key" class="pb-2">We weren't able to automatically detect an <b>access key</b>. If you have your <b>access key</b>, you can still take the survey. Please enter it in the box below.<br />
             Alternatively, you may enter your <b>email address</b> that is currently active with the C2C Registry so we may send you an email containing your access key.</label>
         <div class="input-group input-group-lg">
             <input type="text" class="form-control" style="text-align: center;" id="key" name="key"
-                placeholder="Your access key or C2C email address">
+                placeholder="Your survey access key or C2C email address">
         </div>
         <div class="pt-4 d-grid gap-2 col-6 mx-auto">
             <button type="submit" class="btn btn-primary btn-lg" id="submit_button">Submit</button>
@@ -41,7 +27,7 @@
                 Loading....
             </button>
         </div>
-    </form>{% endif %}
+    </form>
 </div>
 
 <script type="text/javascript">
