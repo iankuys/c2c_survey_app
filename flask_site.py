@@ -31,7 +31,7 @@ BUBBLE_MESSAGES = {
 }
 
 # List of screen numbers that this survey has
-ALLOWED_SCREENS = [1, 2, 3]
+ALLOWED_SCREENS = [1, 2, 3, 4, 5, 6, 7]
 
 VIDEOS = mindlib.json_to_dict("./content/videos.json")
 UNDEFINED_VID_ID_PLACEHOLDER = "UNDEFINED"
@@ -187,7 +187,7 @@ def index():
 
             # Got video data but the user hasn't finished the survey yet - don't assign any more videos
             # print(existing_dcv_video_data)
-            four_videos = []
+            fourteen_videos = []
             for r in existing_dcv_video_data:
                 existing_vid_a_id = r["video_a"]
                 existing_vid_b_id = r["video_b"]
@@ -196,27 +196,28 @@ def index():
                     and existing_vid_a_id != UNDEFINED_VID_ID_PLACEHOLDER
                     and len(existing_vid_b_id) > 0
                     and existing_vid_b_id != UNDEFINED_VID_ID_PLACEHOLDER
-                    and len(four_videos) < 4
+                    and len(fourteen_videos) < 14
                 ):
-                    four_videos.append(r["video_a"])
-                    four_videos.append(r["video_b"])
+                    fourteen_videos.append(r["video_a"])
+                    fourteen_videos.append(r["video_b"])
             most_recent_completed_screen_from_redcap = redcap_helpers.get_most_recent_screen(
                 flask_app.config["C2C_DCV_API_TOKEN"],
                 flask_app.config["REDCAP_API_URL"],
                 hashed_id,
             )
             print(
-                f"[{hashed_id}] Experiment record (C2C ID {access_keys_to_c2c_ids[hashed_id]}) already created with videos {four_videos} and completed screen {most_recent_completed_screen_from_redcap}"
+                f"[{hashed_id}] Experiment record (C2C ID {access_keys_to_c2c_ids[hashed_id]}) already created with videos {fourteen_videos} and completed screen {most_recent_completed_screen_from_redcap}"
             )
             if int(most_recent_completed_screen_from_redcap) == ALLOWED_SCREENS[-1]:
                 # If they completed the final screen, serve the completion message
                 return redirect(url_for("index", msg="survey_completed"), code=301)
         else:
             # New survey participant
-            # Shuffle all video keys, and save the first four from the shuffled list
+            # Shuffle all video keys, and save the first fourteen from the shuffled list
             video_ids = list(VIDEOS.keys())
             random.shuffle(video_ids)
-            four_videos = video_ids[0:4]
+            fourteen_videos = video_ids[0:14]
+
             start_time = mindlib.timestamp_now()
 
             # Add the record to the experiment's REDCap project and start the experiment
@@ -230,25 +231,48 @@ def index():
                 {
                     HASHED_ID_EXPERIMENT_REDCAP_VAR: hashed_id,
                     "redcap_event_name": "screen1_arm_1",
-                    "video_a": four_videos[0],
-                    "video_b": four_videos[1],
+                    "video_a": fourteen_videos[0],
+                    "video_b": fourteen_videos[1],
                 },
                 {
                     HASHED_ID_EXPERIMENT_REDCAP_VAR: hashed_id,
                     "redcap_event_name": "screen2_arm_1",
-                    "video_a": four_videos[2],
-                    "video_b": four_videos[3],
+                    "video_a": fourteen_videos[2],
+                    "video_b": fourteen_videos[3],
                 },
-                # Screen 3 video IDs are determined from the selections of Screens 1 and 2
                 {
                     HASHED_ID_EXPERIMENT_REDCAP_VAR: hashed_id,
                     "redcap_event_name": "screen3_arm_1",
-                    "video_a": UNDEFINED_VID_ID_PLACEHOLDER,
-                    "video_b": UNDEFINED_VID_ID_PLACEHOLDER,
+                    "video_a": fourteen_videos[4],
+                    "video_b": fourteen_videos[5],
+                },
+                {
+                    HASHED_ID_EXPERIMENT_REDCAP_VAR: hashed_id,
+                    "redcap_event_name": "screen4_arm_1",
+                    "video_a": fourteen_videos[6],
+                    "video_b": fourteen_videos[7],
+                },
+                {
+                    HASHED_ID_EXPERIMENT_REDCAP_VAR: hashed_id,
+                    "redcap_event_name": "screen5_arm_1",
+                    "video_a": fourteen_videos[8],
+                    "video_b": fourteen_videos[9],
+                },
+                {
+                    HASHED_ID_EXPERIMENT_REDCAP_VAR: hashed_id,
+                    "redcap_event_name": "screen6_arm_1",
+                    "video_a": fourteen_videos[10],
+                    "video_b": fourteen_videos[11],
+                },
+                {
+                    HASHED_ID_EXPERIMENT_REDCAP_VAR: hashed_id,
+                    "redcap_event_name": "screen7_arm_1",
+                    "video_a": fourteen_videos[12],
+                    "video_b": fourteen_videos[13],
                 },
             ]
             print(
-                f"[{hashed_id}] Creating NEW record (C2C ID {access_keys_to_c2c_ids[hashed_id]}) with videos {four_videos}"
+                f"[{hashed_id}] Creating NEW record (C2C ID {access_keys_to_c2c_ids[hashed_id]}) with videos {fourteen_videos}"
             )
             redcap_helpers.import_record(
                 flask_app.config["C2C_DCV_API_TOKEN"],
@@ -258,14 +282,34 @@ def index():
         resp = make_response(
             render_template("index.html", key=hashed_id, c2c_id=access_keys_to_c2c_ids[hashed_id])
         )
-        resp.set_cookie(key="v1_id", value=four_videos[0])
-        resp.set_cookie(key="v1_url", value=VIDEOS[four_videos[0]])
-        resp.set_cookie(key="v2_id", value=four_videos[1])
-        resp.set_cookie(key="v2_url", value=VIDEOS[four_videos[1]])
-        resp.set_cookie(key="v3_id", value=four_videos[2])
-        resp.set_cookie(key="v3_url", value=VIDEOS[four_videos[2]])
-        resp.set_cookie(key="v4_id", value=four_videos[3])
-        resp.set_cookie(key="v4_url", value=VIDEOS[four_videos[3]])
+        resp.set_cookie(key="v1_id", value=fourteen_videos[0])
+        resp.set_cookie(key="v1_url", value=VIDEOS[fourteen_videos[0]])
+        resp.set_cookie(key="v2_id", value=fourteen_videos[1])
+        resp.set_cookie(key="v2_url", value=VIDEOS[fourteen_videos[1]])
+        resp.set_cookie(key="v3_id", value=fourteen_videos[2])
+        resp.set_cookie(key="v3_url", value=VIDEOS[fourteen_videos[2]])
+        resp.set_cookie(key="v4_id", value=fourteen_videos[3])
+        resp.set_cookie(key="v4_url", value=VIDEOS[fourteen_videos[3]])
+        resp.set_cookie(key="v5_id", value=fourteen_videos[4])
+        resp.set_cookie(key="v5_url", value=VIDEOS[fourteen_videos[4]])
+        resp.set_cookie(key="v6_id", value=fourteen_videos[5])
+        resp.set_cookie(key="v6_url", value=VIDEOS[fourteen_videos[5]])
+        resp.set_cookie(key="v7_id", value=fourteen_videos[6])
+        resp.set_cookie(key="v7_url", value=VIDEOS[fourteen_videos[6]])
+        resp.set_cookie(key="v8_id", value=fourteen_videos[7])
+        resp.set_cookie(key="v8_url", value=VIDEOS[fourteen_videos[7]])
+        resp.set_cookie(key="v9_id", value=fourteen_videos[8])
+        resp.set_cookie(key="v9_url", value=VIDEOS[fourteen_videos[8]])
+        resp.set_cookie(key="v10_id", value=fourteen_videos[9])
+        resp.set_cookie(key="v10_url", value=VIDEOS[fourteen_videos[9]])
+        resp.set_cookie(key="v11_id", value=fourteen_videos[10])
+        resp.set_cookie(key="v11_url", value=VIDEOS[fourteen_videos[10]])
+        resp.set_cookie(key="v12_id", value=fourteen_videos[11])
+        resp.set_cookie(key="v12_url", value=VIDEOS[fourteen_videos[11]])
+        resp.set_cookie(key="v13_id", value=fourteen_videos[12])
+        resp.set_cookie(key="v13_url", value=VIDEOS[fourteen_videos[12]])
+        resp.set_cookie(key="v14_id", value=fourteen_videos[13])
+        resp.set_cookie(key="v14_url", value=VIDEOS[fourteen_videos[13]])
 
         # Set completed_screen cookie: the most recent screen the user completed
         # Needs to be served in a path because the JS script has limited scope to where it can place the cookie
@@ -352,48 +396,48 @@ def videos():
                 # From the user's perspective: the URL will contain an incorrect screen number but
                 # the correct screen will be served
 
-            SERVE_SCREEN_3 = most_recent_completed_screen == 2
-            if SERVE_SCREEN_3:
-                resp_screen3 = make_response(
-                    render_template("videos.html", screen=scr, vid_a_position=5, vid_b_position=6)
-                )
+            # SERVE_SCREEN_3 = most_recent_completed_screen == 2
+            # if SERVE_SCREEN_3:
+            #     resp_screen3 = make_response(
+            #         render_template("videos.html", screen=scr, vid_a_position=5, vid_b_position=6)
+            #     )
 
-                # List of 2 strings: each is the ID of a video that was previously selected
-                chosen_video_ids = redcap_helpers.get_first_two_selected_videos(
-                    flask_app.config["C2C_DCV_API_TOKEN"],
-                    flask_app.config["REDCAP_API_URL"],
-                    hashed_id,
-                )
-                print(f"[{hashed_id}] Got previously selected videos: {chosen_video_ids}")
-                if chosen_video_ids == ["", ""]:
-                    return redirect(url_for("index", error_code="s01"), code=301)
+            #     # List of 2 strings: each is the ID of a video that was previously selected
+            #     chosen_video_ids = redcap_helpers.get_first_two_selected_videos(
+            #         flask_app.config["C2C_DCV_API_TOKEN"],
+            #         flask_app.config["REDCAP_API_URL"],
+            #         hashed_id,
+            #     )
+            #     print(f"[{hashed_id}] Got previously selected videos: {chosen_video_ids}")
+            #     if chosen_video_ids == ["", ""]:
+            #         return redirect(url_for("index", error_code="s01"), code=301)
 
-                _vid5_id_index = random.randint(0, 1)  # 0 or 1
-                _vid6_id_index = _vid5_id_index - 1  # -1 or 0
-                v5_id = chosen_video_ids[_vid5_id_index]
-                v6_id = chosen_video_ids[_vid6_id_index]
+            #     _vid5_id_index = random.randint(0, 1)  # 0 or 1
+            #     _vid6_id_index = _vid5_id_index - 1  # -1 or 0
+            #     v5_id = chosen_video_ids[_vid5_id_index]
+            #     v6_id = chosen_video_ids[_vid6_id_index]
 
-                # Set cookies for proper frontend behavior
-                resp_screen3.set_cookie(key="v5_id", value=v5_id)
-                resp_screen3.set_cookie(key="v5_url", value=VIDEOS[v5_id])
-                resp_screen3.set_cookie(key="v6_id", value=v6_id)
-                resp_screen3.set_cookie(key="v6_url", value=VIDEOS[v6_id])
+            #     # Set cookies for proper frontend behavior
+            #     resp_screen3.set_cookie(key="v5_id", value=v5_id)
+            #     resp_screen3.set_cookie(key="v5_url", value=VIDEOS[v5_id])
+            #     resp_screen3.set_cookie(key="v6_id", value=v6_id)
+            #     resp_screen3.set_cookie(key="v6_url", value=VIDEOS[v6_id])
 
-                # Create REDCap record with screen 3 data
-                record_screen3 = [
-                    {
-                        HASHED_ID_EXPERIMENT_REDCAP_VAR: hashed_id,
-                        "redcap_event_name": "screen3_arm_1",
-                        "video_a": v5_id,
-                        "video_b": v6_id,
-                    }
-                ]
-                redcap_helpers.import_record(
-                    flask_app.config["C2C_DCV_API_TOKEN"],
-                    flask_app.config["REDCAP_API_URL"],
-                    record_screen3,
-                )
-                print(f"[{hashed_id}] Created REDCap record for Screen 3.")
+            #     # Create REDCap record with screen 3 data
+            #     record_screen3 = [
+            #         {
+            #             HASHED_ID_EXPERIMENT_REDCAP_VAR: hashed_id,
+            #             "redcap_event_name": "screen3_arm_1",
+            #             "video_a": v5_id,
+            #             "video_b": v6_id,
+            #         }
+            #     ]
+            #     redcap_helpers.import_record(
+            #         flask_app.config["C2C_DCV_API_TOKEN"],
+            #         flask_app.config["REDCAP_API_URL"],
+            #         record_screen3,
+            #     )
+            #     print(f"[{hashed_id}] Created REDCap record for Screen 3.")
 
             if scr not in ALLOWED_SCREENS:
                 # could consult cookie here too
@@ -415,12 +459,12 @@ def videos():
             vid_b_pos = scr * 2
             print(f"[{hashed_id}] Starting screen {scr} (videos {vid_a_pos} & {vid_b_pos})")
 
-            if most_recent_completed_screen < 2:
+            if most_recent_completed_screen < 7:
                 return render_template(
                     "videos.html", screen=scr, vid_a_position=vid_a_pos, vid_b_position=vid_b_pos
                 )
-            elif SERVE_SCREEN_3:  # most_recent_completed_screen == 2
-                return resp_screen3
+            # elif SERVE_SCREEN_3:  # most_recent_completed_screen == 2
+            #     return resp_screen3
 
             # TODO: temporary end of survey; maybe add a new text section for screen 4
             return redirect(url_for("index", msg="survey_completed"), code=301)
