@@ -25,7 +25,7 @@ python -m pip install --upgrade pip
 pip install -r requirements.txt
 
 # Run the script: develop, debug, etc.
-python app.py
+python main.py
 
 # Press CTRL+C to close the development server
 
