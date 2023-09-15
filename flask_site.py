@@ -164,6 +164,7 @@ def index():
         existing_dcv_video_data = redcap_helpers.export_dcv_video_data(
             flask_app.config["C2C_DCV_API_TOKEN"], flask_app.config["REDCAP_API_URL"], hashed_id
         )
+        
         # print(survey_record)
 
         already_started_survey = len(existing_dcv_video_data) > 0
@@ -246,9 +247,12 @@ def index():
                 flask_app.config["REDCAP_API_URL"],
                 new_record,
             )
-        resp = make_response(
-            render_template("index.html", key=hashed_id, c2c_id=access_keys_to_c2c_ids[hashed_id])
-        )
+
+            resp = redirect(url_for("intro", key=hashed_id), code=301)
+            
+        if already_started_survey:
+            resp = redirect(url_for("videos", key=hashed_id, screen=most_recent_completed_screen_from_redcap), code=301)
+        
         resp.set_cookie(key="v1_id", value=four_videos[0])
         resp.set_cookie(key="v1_url", value=VIDEOS[four_videos[0]])
         resp.set_cookie(key="v2_id", value=four_videos[1])
@@ -271,10 +275,17 @@ def index():
                 key="completed_screen",
                 value=most_recent_completed_screen_from_redcap,
                 path=FLASK_APP_PATH,
-            )
+            )      
         return resp
     return render_template("index.html")
 
+@flask_app.route("/intro", methods=["GET"])
+def intro():
+    # Endpoint if user is a new survey participant
+    if "key" in request.args and len(request.args["key"]) > 0:
+        hashed_id = sanitize_key(request.args["key"])
+    # Debug: returns "hello intro!"
+    return render_template("intro.html", key=hashed_id)
 
 @flask_app.route("/check", methods=["GET", "POST"])
 def check():
