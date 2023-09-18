@@ -59,7 +59,7 @@ def import_record(token: str, url: str, records: list[dict]) -> int:
     return 1
 
 
-def export_video_ids(token: str, url: str, recordid: str) -> list[dict]:
+def export_video_ids(token: str, url: str, recordid: str, maxScreens: int) -> list[dict]:
     """Makes a REDCap API call to retrieve the video IDs."""
     request_params = {
         "token": token,
@@ -73,9 +73,6 @@ def export_video_ids(token: str, url: str, recordid: str) -> list[dict]:
         "fields[1]": "video_a",
         "fields[2]": "video_b",
         "fields[3]": "video_complete",
-        "events[0]": "screen1_arm_1",
-        "events[1]": "screen2_arm_1",
-        "events[2]": "screen3_arm_1",
         "rawOrLabel": "raw",
         "rawOrLabelHeaders": "raw",
         "exportCheckboxLabel": "false",
@@ -83,6 +80,10 @@ def export_video_ids(token: str, url: str, recordid: str) -> list[dict]:
         "exportDataAccessGroups": "false",
         "returnFormat": "json",
     }
+
+    for screen in range(maxScreens):
+        request_params[f"events[{screen}]"] = f"screen{screen+1}_arm_1"
+
     r = requests.post(url, data=request_params)
     result = json.loads(r.text)
     if type(result) == dict:
@@ -94,7 +95,7 @@ def export_video_ids(token: str, url: str, recordid: str) -> list[dict]:
     return result
 
 
-def export_dcv_video_data(token: str, url: str, recordid: str) -> list[dict]:
+def export_dcv_video_data(token: str, url: str, recordid: str, maxScreens: int) -> list[dict]:
     """Makes a REDCap API call to retrieve information about all of a survey participant's videos."""
     request_params = {
         "token": token,
@@ -104,13 +105,6 @@ def export_dcv_video_data(token: str, url: str, recordid: str) -> list[dict]:
         "type": "flat",
         "csvDelimiter": "",
         "records[0]": recordid,
-        "events[0]": "screen1_arm_1",
-        "events[1]": "screen2_arm_1",
-        "events[2]": "screen3_arm_1",
-        "events[3]": "screen4_arm_1",
-        "events[4]": "screen5_arm_1",
-        "events[5]": "screen6_arm_1",
-        "events[6]": "screen7_arm_1",
         "rawOrLabel": "raw",
         "rawOrLabelHeaders": "raw",
         "exportCheckboxLabel": "false",
@@ -118,6 +112,9 @@ def export_dcv_video_data(token: str, url: str, recordid: str) -> list[dict]:
         "exportDataAccessGroups": "false",
         "returnFormat": "json",
     }
+    for screen in range(maxScreens):
+        request_params[f"events[{screen}]"] = f"screen{screen+1}_arm_1"
+
     r = requests.post(url, data=request_params)
     result = json.loads(r.text)
     if type(result) == dict:
@@ -183,7 +180,7 @@ def _get_screen_number(redcap_event_name: str, expected_event_name_prefix: str =
     return 0
 
 
-def get_most_recent_screen(token: str, url: str, recordid: str) -> str:
+def get_most_recent_screen(token: str, url: str, recordid: str, maxScreens: int) -> str:
     request_params = {
         "token": token,
         "content": "record",
@@ -194,9 +191,6 @@ def get_most_recent_screen(token: str, url: str, recordid: str) -> str:
         "records[0]": recordid,
         "fields[0]": "access_key",
         "fields[1]": "video_complete",
-        "events[0]": "screen1_arm_1",
-        "events[1]": "screen2_arm_1",
-        "events[2]": "screen3_arm_1",
         "rawOrLabel": "raw",
         "rawOrLabelHeaders": "raw",
         "exportCheckboxLabel": "false",
@@ -204,9 +198,13 @@ def get_most_recent_screen(token: str, url: str, recordid: str) -> str:
         "exportDataAccessGroups": "false",
         "returnFormat": "json",
     }
+
+    for screen in range(maxScreens):
+        request_params[f"events[{screen}]"] = f"screen{screen+1}_arm_1"
+
     r = requests.post(url, data=request_params)
     result = json.loads(r.text)
-    expected_number_of_screens = 3
+    expected_number_of_screens = maxScreens  # 3
     if type(result) == dict:
         if "error" in result:
             raise REDCapError(
