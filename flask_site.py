@@ -30,7 +30,8 @@ BUBBLE_MESSAGES = {
 }
 
 # List of screen numbers that this survey has
-ALLOWED_SCREENS = [1, 2, 3, 4, 5, 6, 7]
+# ALLOWED_SCREENS = [1, 2, 3, 4, 5, 6, 7]
+MAX_SCREENS = 3  # Change to 7 when in production
 
 VIDEOS = mindlib.json_to_dict("./content/videos.json")
 UNDEFINED_VID_ID_PLACEHOLDER = "UNDEFINED"
@@ -169,7 +170,7 @@ def index():
         existing_dcv_video_data = redcap_helpers.export_dcv_video_data(
             flask_app.config["C2C_DCV_API_TOKEN"], flask_app.config["REDCAP_API_URL"], hashed_id
         )
-        
+
         # print(survey_record)
 
         already_started_survey = len(existing_dcv_video_data) > 0
@@ -208,7 +209,9 @@ def index():
             print(
                 f"[{hashed_id}] Experiment record (C2C ID {access_keys_to_c2c_ids[hashed_id]}) already created with videos {fourteen_videos} and completed screen {most_recent_completed_screen_from_redcap}"
             )
-            if int(most_recent_completed_screen_from_redcap) == ALLOWED_SCREENS[-1]:
+            if (
+                int(most_recent_completed_screen_from_redcap) == MAX_SCREENS
+            ):  # ALLOWED_SCREENS[-1]:
                 # If they completed the final screen, serve the completion message
                 return redirect(url_for("index", msg="survey_completed"), code=301)
         else:
@@ -281,38 +284,25 @@ def index():
             )
 
             resp = redirect(url_for("intro", key=hashed_id), code=301)
-            
+
         if already_started_survey:
-            resp = redirect(url_for("videos", key=hashed_id, screen=most_recent_completed_screen_from_redcap), code=301)
-        
-        resp.set_cookie(key="v1_id", value=fourteen_videos[0])
-        resp.set_cookie(key="v1_url", value=VIDEOS[fourteen_videos[0]])
-        resp.set_cookie(key="v2_id", value=fourteen_videos[1])
-        resp.set_cookie(key="v2_url", value=VIDEOS[fourteen_videos[1]])
-        resp.set_cookie(key="v3_id", value=fourteen_videos[2])
-        resp.set_cookie(key="v3_url", value=VIDEOS[fourteen_videos[2]])
-        resp.set_cookie(key="v4_id", value=fourteen_videos[3])
-        resp.set_cookie(key="v4_url", value=VIDEOS[fourteen_videos[3]])
-        resp.set_cookie(key="v5_id", value=fourteen_videos[4])
-        resp.set_cookie(key="v5_url", value=VIDEOS[fourteen_videos[4]])
-        resp.set_cookie(key="v6_id", value=fourteen_videos[5])
-        resp.set_cookie(key="v6_url", value=VIDEOS[fourteen_videos[5]])
-        resp.set_cookie(key="v7_id", value=fourteen_videos[6])
-        resp.set_cookie(key="v7_url", value=VIDEOS[fourteen_videos[6]])
-        resp.set_cookie(key="v8_id", value=fourteen_videos[7])
-        resp.set_cookie(key="v8_url", value=VIDEOS[fourteen_videos[7]])
-        resp.set_cookie(key="v9_id", value=fourteen_videos[8])
-        resp.set_cookie(key="v9_url", value=VIDEOS[fourteen_videos[8]])
-        resp.set_cookie(key="v10_id", value=fourteen_videos[9])
-        resp.set_cookie(key="v10_url", value=VIDEOS[fourteen_videos[9]])
-        resp.set_cookie(key="v11_id", value=fourteen_videos[10])
-        resp.set_cookie(key="v11_url", value=VIDEOS[fourteen_videos[10]])
-        resp.set_cookie(key="v12_id", value=fourteen_videos[11])
-        resp.set_cookie(key="v12_url", value=VIDEOS[fourteen_videos[11]])
-        resp.set_cookie(key="v13_id", value=fourteen_videos[12])
-        resp.set_cookie(key="v13_url", value=VIDEOS[fourteen_videos[12]])
-        resp.set_cookie(key="v14_id", value=fourteen_videos[13])
-        resp.set_cookie(key="v14_url", value=VIDEOS[fourteen_videos[13]])
+            resp = redirect(
+                url_for("videos", key=hashed_id, screen=most_recent_completed_screen_from_redcap),
+                code=301,
+            )
+
+        # resp.set_cookie(key="v1_id", value=fourteen_videos[0])
+        # resp.set_cookie(key="v1_url", value=VIDEOS[fourteen_videos[0]])
+        # resp.set_cookie(key="v2_id", value=fourteen_videos[1])
+        # resp.set_cookie(key="v2_url", value=VIDEOS[fourteen_videos[1]])
+        # resp.set_cookie(key="v3_id", value=fourteen_videos[2])
+        # resp.set_cookie(key="v3_url", value=VIDEOS[fourteen_videos[2]])
+        # resp.set_cookie(key="v4_id", value=fourteen_videos[3])
+        # resp.set_cookie(key="v4_url", value=VIDEOS[fourteen_videos[3]])
+
+        for i in range(14):
+            resp.set_cookie(key=f"v{i + 1}_id", value=fourteen_videos[i])
+            resp.set_cookie(key=f"v{i + 1}_url", value=VIDEOS[fourteen_videos[i]])
 
         # Set completed_screen cookie: the most recent screen the user completed
         # Needs to be served in a path because the JS script has limited scope to where it can place the cookie
@@ -327,9 +317,10 @@ def index():
                 key="completed_screen",
                 value=most_recent_completed_screen_from_redcap,
                 path=FLASK_APP_PATH,
-            )      
+            )
         return resp
     return render_template("index.html")
+
 
 @flask_app.route("/intro", methods=["GET"])
 def intro():
@@ -338,6 +329,7 @@ def intro():
         hashed_id = sanitize_key(request.args["key"])
     # Debug: returns "hello intro!"
     return render_template("intro.html", key=hashed_id)
+
 
 @flask_app.route("/check", methods=["GET", "POST"])
 def check():
@@ -449,14 +441,14 @@ def videos():
             #     )
             #     print(f"[{hashed_id}] Created REDCap record for Screen 3.")
 
-            if scr not in ALLOWED_SCREENS:
+            if scr > MAX_SCREENS:
                 # could consult cookie here too
                 most_recent_completed_screen_from_redcap = redcap_helpers.get_most_recent_screen(
                     flask_app.config["C2C_DCV_API_TOKEN"],
                     flask_app.config["REDCAP_API_URL"],
                     hashed_id,
                 )
-                if int(most_recent_completed_screen_from_redcap) == ALLOWED_SCREENS[-1]:
+                if int(most_recent_completed_screen_from_redcap) == MAX_SCREENS:
                     # If they completed the final screen, serve the completion message
                     return redirect(url_for("index", msg="survey_completed"), code=301)
                 return render_template("videos.html")
@@ -469,12 +461,14 @@ def videos():
             vid_b_pos = scr * 2
             print(f"[{hashed_id}] Starting screen {scr} (videos {vid_a_pos} & {vid_b_pos})")
 
-            if most_recent_completed_screen < 7:
+            if most_recent_completed_screen < MAX_SCREENS:
                 return render_template(
                     "videos.html", screen=scr, vid_a_position=vid_a_pos, vid_b_position=vid_b_pos
                 )
             # elif SERVE_SCREEN_3:  # most_recent_completed_screen == 2
             #     return resp_screen3
+            elif most_recent_completed_screen == MAX_SCREENS:
+                return redirect(url_for("outro"), code=301)
 
             # TODO: temporary end of survey; maybe add a new text section for screen 4
             return redirect(url_for("index", msg="survey_completed"), code=301)
@@ -483,6 +477,14 @@ def videos():
             # No "screen" URL parameter
             return redirect(url_for("index", error_code="v02"), code=301)
     return redirect(url_for("index", error_code="missing_key"), code=301)
+
+
+@flask_app.route("/outro", methods=["GET"])
+def outro():
+    # if "key" in request.args and len(request.args["key"]) > 0:
+    #     hashed_id = sanitize_key(request.args["key"])
+
+    return render_template("outro.html")
 
 
 @flask_app.errorhandler(404)
