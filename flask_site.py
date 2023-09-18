@@ -168,7 +168,10 @@ def index():
             return render_template("index.html", error_message=BUBBLE_MESSAGES["bad_key"])
 
         existing_dcv_video_data = redcap_helpers.export_dcv_video_data(
-            flask_app.config["C2C_DCV_API_TOKEN"], flask_app.config["REDCAP_API_URL"], hashed_id
+            flask_app.config["C2C_DCV_API_TOKEN"],
+            flask_app.config["REDCAP_API_URL"],
+            hashed_id,
+            MAX_SCREENS,
         )
 
         # print(survey_record)
@@ -176,15 +179,6 @@ def index():
         already_started_survey = len(existing_dcv_video_data) > 0
         if already_started_survey:
             # The user has generated a set of videos already - they may have finished the survey already
-
-            # TODO: Check the data from `existing_dcv_video_data` to set this bool
-            participant_finished_survey = False
-            if participant_finished_survey:
-                return render_template(
-                    "index.html",
-                    key=hashed_id,
-                    info_message=BUBBLE_MESSAGES["survey_completed"],
-                )
 
             # Got video data but the user hasn't finished the survey yet - don't assign any more videos
             # print(existing_dcv_video_data)
@@ -205,15 +199,15 @@ def index():
                 flask_app.config["C2C_DCV_API_TOKEN"],
                 flask_app.config["REDCAP_API_URL"],
                 hashed_id,
+                maxScreens=MAX_SCREENS,
             )
             print(
                 f"[{hashed_id}] Experiment record (C2C ID {access_keys_to_c2c_ids[hashed_id]}) already created with videos {fourteen_videos} and completed screen {most_recent_completed_screen_from_redcap}"
             )
-            if (
-                int(most_recent_completed_screen_from_redcap) == MAX_SCREENS
-            ):  # ALLOWED_SCREENS[-1]:
+            if int(most_recent_completed_screen_from_redcap) == MAX_SCREENS:
                 # If they completed the final screen, serve the completion message
-                return redirect(url_for("index", msg="survey_completed"), code=301)
+                # return redirect(url_for("index", msg="survey_completed"), code=301)
+                return redirect(url_for("outro"), code=301)
         else:
             # New survey participant
             # Shuffle all video keys, and save the first fourteen from the shuffled list
@@ -447,10 +441,12 @@ def videos():
                     flask_app.config["C2C_DCV_API_TOKEN"],
                     flask_app.config["REDCAP_API_URL"],
                     hashed_id,
+                    maxScreens=MAX_SCREENS,
                 )
                 if int(most_recent_completed_screen_from_redcap) == MAX_SCREENS:
                     # If they completed the final screen, serve the completion message
-                    return redirect(url_for("index", msg="survey_completed"), code=301)
+                    # return redirect(url_for("index", msg="survey_completed"), code=301)
+                    return redirect(url_for("outro"), code=301)
                 return render_template("videos.html")
 
             # Get the correct video positions for the current screen:
