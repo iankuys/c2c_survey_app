@@ -1,0 +1,20 @@
+{% extends '_base.html' %}
+{% block content %}
+
+<div class = "text-center">
+    <!--Question-->
+    <div class="container">
+        <p><label for "Question"> Question: </label></p>
+        <!--Textbox-->
+        <div class="input-group input-group-lg">
+            <input type="text" class="form-control" style="text-align: center;" id="key" name="key"
+                placeholder="Your response...">
+        </div>
+    </div>
+    <!--Submit button-->
+    <div class="py-3 d-grid gap-2 col-6 mx-auto">
+        <a href="{{ url_for('index', key=key, screen=1, msg='survey_completed') }}" class="btn btn-primary btn-lg" id="submit_button">Submit</a>
+       
+    </div>
+</div>
+{% endblock %}
