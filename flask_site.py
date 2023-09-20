@@ -27,6 +27,7 @@ BUBBLE_MESSAGES = {
     "s01": "An error occured with loading the next page. Please contact UCI MIND IT and provide your access key.",  # Couldn't generate screen 3 due to missing video IDs
     "survey_completed": "This survey has been completed. Thank you for your participation!",
     "unknown": "Unknown error.",
+    "incomplete_outro": "Please answer every question to proceed.",
 }
 
 # List of screen numbers that this survey has
@@ -207,7 +208,7 @@ def index():
             if int(most_recent_completed_screen_from_redcap) == MAX_SCREENS:
                 # If they completed the final screen, serve the completion message
                 # return redirect(url_for("index", msg="survey_completed"), code=301)
-                return redirect(url_for("outro"), code=301)
+                return redirect(url_for("outro", key=hashed_id), code=301)
         else:
             # New survey participant
             # Shuffle all video keys, and save the first fourteen from the shuffled list
@@ -446,7 +447,7 @@ def videos():
                 if int(most_recent_completed_screen_from_redcap) == MAX_SCREENS:
                     # If they completed the final screen, serve the completion message
                     # return redirect(url_for("index", msg="survey_completed"), code=301)
-                    return redirect(url_for("outro"), code=301)
+                    return redirect(url_for("outro", key=hashed_id), code=301)
                 return render_template("videos.html")
 
             # Get the correct video positions for the current screen:
@@ -464,7 +465,7 @@ def videos():
             # elif SERVE_SCREEN_3:  # most_recent_completed_screen == 2
             #     return resp_screen3
             elif most_recent_completed_screen == MAX_SCREENS:
-                return redirect(url_for("outro"), code=301)
+                return redirect(url_for("outro", key=hashed_id), code=301)
 
             # TODO: temporary end of survey; maybe add a new text section for screen 4
             return redirect(url_for("index", msg="survey_completed"), code=301)
@@ -477,20 +478,45 @@ def videos():
 
 @flask_app.route("/outro", methods=["GET", "POST"])
 def outro():
-    # if "key" in request.args and len(request.args["key"]) > 0:
-    #     hashed_id = sanitize_key(request.args["key"])
+    # hashed_id
+    hashed_id = ""
+    if "key" in request.args and len(request.args["key"]) > 0:
+        hashed_id = sanitize_key(request.args["key"])
 
+    # bubble error message
+    print("request.args: ", request.args)
+    if "error_code" in request.args and len(request.args["error_code"]) > 0:
+        error_code = request.args["error_code"]
+        if error_code not in BUBBLE_MESSAGES:
+            error_code = "unknown"
+            print("here")
+        return render_template("outro.html", error_message=BUBBLE_MESSAGES[error_code])
+
+    if "msg" in request.args and len(request.args["msg"]) > 0:
+        message_code = request.args["msg"]
+        print("message code: ", message_code)
+        if message_code not in BUBBLE_MESSAGES:
+            return render_template("outro.html", error_message=BUBBLE_MESSAGES["unknown"])
+        return render_template("outro.html", info_message=BUBBLE_MESSAGES[message_code])
+
+    # get user input
     if request.method == "POST":
         q1_response = request.form.get("q1")
         q2_response = request.form.get("q2")
         q3_response = request.form.get("q3")
-
         print(f"outro responses: {q1_response}, {q2_response}, {q3_response}")
 
-    if len(q1_response) > 0 and len(q2_response) > 0 and len(q3_response) > 0:
-        # return render_template("index.html")
-        return redirect(url_for("index", msg="survey_completed"), code=301)
-    return render_template("outro.html")
+        if len(q1_response) > 0 and len(q2_response) > 0 and len(q3_response) > 0:
+            return redirect(url_for("index", msg="survey_completed"), code=301)
+        else:
+            return redirect(
+                url_for(
+                    "outro", key=hashed_id, error_code="incomplete_outro", msg="incomplete_outro"
+                ),
+                code=301,
+            )
+
+    return render_template("outro.html", key=hashed_id)
 
 
 @flask_app.errorhandler(404)
