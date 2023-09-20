@@ -2,6 +2,18 @@
 {% block content %}
 
 <div class = "text-center">
+    <!--Check key-->
+    {% if key %}<p class="pb-1">[DEBUG] Your access key is: <b><code>{{ key }}</code></b> [DEBUG]</p> {%endif%}    
+
+    <!--Error Bubble message-->
+    {% if error_message %}
+    <div class="alert alert-warning d-flex justify-content-between">
+        {{ error_message }}<a href="{{ url_for('outro') }}"
+            style="text-decoration: none; color: #604f03;font-weight: bolder;">×</a>
+    </div>
+    {% endif %}
+
+    <!--Questions, Responses, and Submit-->
     <form action=" {{ url_for('outro') }}" method="post">
         <div class="container">
             <!--Question 1-->
@@ -24,9 +36,6 @@
 
            <!--Submit button-->
             <div class="py-3 d-grid gap-2 col-6 mx-auto">
-                <!-- <a href="{{ url_for('index', key=key, screen=0, msg='survey_completed') }}" class="btn btn-primary btn-lg" id="submit_button">
-                    <input type="submit" class="btn btn-primary btn-lg"/>
-                </a> -->
                 <a href="{{ url_for('index', key=key, screen=0, msg='survey_completed') }}">
                     <input type="submit" class="btn btn-primary btn-lg center" style="height:50px; width:550px"/>
                 </a>
@@ -35,7 +44,6 @@
                     Loading....
                 </button>
             </div>
-
        </div>
     </form>
 </div>
