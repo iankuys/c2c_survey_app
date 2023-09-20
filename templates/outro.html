@@ -24,8 +24,11 @@
 
            <!--Submit button-->
             <div class="py-3 d-grid gap-2 col-6 mx-auto">
-                <a href="{{ url_for('index', key=key, screen=0, msg='survey_completed') }}" class="btn btn-primary btn-lg" id="submit_button">
-                    <input type="submit"/>
+                <!-- <a href="{{ url_for('index', key=key, screen=0, msg='survey_completed') }}" class="btn btn-primary btn-lg" id="submit_button">
+                    <input type="submit" class="btn btn-primary btn-lg"/>
+                </a> -->
+                <a href="{{ url_for('index', key=key, screen=0, msg='survey_completed') }}">
+                    <input type="submit" class="btn btn-primary btn-lg center" style="height:50px; width:550px"/>
                 </a>
                 <button hidden type="button" class="btn btn-primary btn-lg disabled" id="loading_button">
                     <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
