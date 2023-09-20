@@ -21,16 +21,19 @@
            <div class="input-group input-group-lg">
                <textarea class="form-control" style="height: 10em; resize: none; text-align: center;" id="q3" name="q3" placeholder="Your response for Question 3"></textarea>
            </div>
-       </div>
-       <!--Submit button-->
-       <div class="py-3 d-grid gap-2 col-6 mx-auto">
-           <a href="{{ url_for('index', key=key, screen=1, msg='survey_completed') }}" class="btn btn-primary btn-lg" id="submit_button">Submit</a>
 
-           <button hidden type="button" class="btn btn-primary btn-lg disabled" id="loading_button">
-                <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
-                Loading....
-            </button>
-       </div>   
+           <!--Submit button-->
+            <div class="py-3 d-grid gap-2 col-6 mx-auto">
+                <a href="{{ url_for('index', key=key, screen=0, msg='survey_completed') }}" class="btn btn-primary btn-lg" id="submit_button">
+                    <input type="submit"/>
+                </a>
+                <button hidden type="button" class="btn btn-primary btn-lg disabled" id="loading_button">
+                    <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                    Loading....
+                </button>
+            </div>
+
+       </div>
     </form>
 </div>
 

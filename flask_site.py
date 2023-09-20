@@ -31,7 +31,7 @@ BUBBLE_MESSAGES = {
 
 # List of screen numbers that this survey has
 # ALLOWED_SCREENS = [1, 2, 3, 4, 5, 6, 7]
-MAX_SCREENS = 3  # Change to 7 when in production
+MAX_SCREENS = 1  # Change to 7 when in production
 
 VIDEOS = mindlib.json_to_dict("./content/videos.json")
 UNDEFINED_VID_ID_PLACEHOLDER = "UNDEFINED"
@@ -475,11 +475,21 @@ def videos():
     return redirect(url_for("index", error_code="missing_key"), code=301)
 
 
-@flask_app.route("/outro", methods=["GET"])
+@flask_app.route("/outro", methods=["GET", "POST"])
 def outro():
     # if "key" in request.args and len(request.args["key"]) > 0:
     #     hashed_id = sanitize_key(request.args["key"])
 
+    if request.method == "POST":
+        q1_response = request.form.get("q1")
+        q2_response = request.form.get("q2")
+        q3_response = request.form.get("q3")
+
+        print(f"outro responses: {q1_response}, {q2_response}, {q3_response}")
+
+    if len(q1_response) > 0 and len(q2_response) > 0 and len(q3_response) > 0:
+        # return render_template("index.html")
+        return redirect(url_for("index", msg="survey_completed"), code=301)
     return render_template("outro.html")
 
 
