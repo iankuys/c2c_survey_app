@@ -478,20 +478,22 @@ def videos():
 
 @flask_app.route("/outro", methods=["GET", "POST"])
 def outro():
+    # error_code = "key" for redirect, error_message = BUBBLE_MESSAGES["key"] for render
     if "key" in request.args and len(request.args["key"]) > 0:
         hashed_id = sanitize_key(request.args["key"])
 
-        # get user input
+        # get user's responses from html
         if request.method == "POST":
             q1_response = request.form.get("q1")
             q2_response = request.form.get("q2")
             q3_response = request.form.get("q3")
-            # print(f"outro responses: {q1_response}, {q2_response}, {q3_response}")
+            print(f"[{hashed_id}] outro responses: {q1_response}, {q2_response}, {q3_response}")
 
+            # check if all questions were answered
             if len(q1_response) > 0 and len(q2_response) > 0 and len(q3_response) > 0:
                 return redirect(url_for("thankyou"), code=301)
             else:
-                print("here 6")
+                # if not all answered, reload outro page with error message
                 return redirect(
                     url_for(
                         "outro",
@@ -500,8 +502,8 @@ def outro():
                     ),
                     code=301,
                 )
-        else:
-            # bubble error message
+        else:  # request.method == GET
+            # bubble error message if outro was not completed
             if "error_code" in request.args and len(request.args["error_code"]) > 0:
                 error_code = request.args["error_code"]
                 if error_code not in BUBBLE_MESSAGES:
@@ -510,7 +512,7 @@ def outro():
                     "outro.html", key=hashed_id, error_message=BUBBLE_MESSAGES[error_code]
                 )
 
-            return render_template("outro.html", key=hashed_id)
+            return render_template("outro.html", key=hashed_id)  # initial visit render
 
     return redirect(url_for("index", msg="missing_key"), code=301)
 
