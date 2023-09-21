@@ -478,45 +478,47 @@ def videos():
 
 @flask_app.route("/outro", methods=["GET", "POST"])
 def outro():
-    # hashed_id
-    hashed_id = ""
     if "key" in request.args and len(request.args["key"]) > 0:
         hashed_id = sanitize_key(request.args["key"])
 
-    # bubble error message
-    print("request.args: ", request.args)
-    if "error_code" in request.args and len(request.args["error_code"]) > 0:
-        error_code = request.args["error_code"]
-        if error_code not in BUBBLE_MESSAGES:
-            error_code = "unknown"
-            print("here")
-        return render_template("outro.html", error_message=BUBBLE_MESSAGES[error_code])
+        # get user input
+        if request.method == "POST":
+            q1_response = request.form.get("q1")
+            q2_response = request.form.get("q2")
+            q3_response = request.form.get("q3")
+            # print(f"outro responses: {q1_response}, {q2_response}, {q3_response}")
 
-    if "msg" in request.args and len(request.args["msg"]) > 0:
-        message_code = request.args["msg"]
-        print("message code: ", message_code)
-        if message_code not in BUBBLE_MESSAGES:
-            return render_template("outro.html", error_message=BUBBLE_MESSAGES["unknown"])
-        return render_template("outro.html", info_message=BUBBLE_MESSAGES[message_code])
-
-    # get user input
-    if request.method == "POST":
-        q1_response = request.form.get("q1")
-        q2_response = request.form.get("q2")
-        q3_response = request.form.get("q3")
-        print(f"outro responses: {q1_response}, {q2_response}, {q3_response}")
-
-        if len(q1_response) > 0 and len(q2_response) > 0 and len(q3_response) > 0:
-            return redirect(url_for("index", msg="survey_completed"), code=301)
+            if len(q1_response) > 0 and len(q2_response) > 0 and len(q3_response) > 0:
+                return redirect(url_for("thankyou"), code=301)
+            else:
+                print("here 6")
+                return redirect(
+                    url_for(
+                        "outro",
+                        key=hashed_id,
+                        error_code="incomplete_outro",
+                    ),
+                    code=301,
+                )
         else:
-            return redirect(
-                url_for(
-                    "outro", key=hashed_id, error_code="incomplete_outro", msg="incomplete_outro"
-                ),
-                code=301,
-            )
+            # bubble error message
+            if "error_code" in request.args and len(request.args["error_code"]) > 0:
+                error_code = request.args["error_code"]
+                if error_code not in BUBBLE_MESSAGES:
+                    error_code = "unknown"
+                return render_template(
+                    "outro.html", key=hashed_id, error_message=BUBBLE_MESSAGES[error_code]
+                )
 
-    return render_template("outro.html", key=hashed_id)
+            return render_template("outro.html", key=hashed_id)
+
+    return redirect(url_for("index", msg="missing_key"), code=301)
+
+
+@flask_app.route("/thankyou", methods=["GET"])
+def thankyou():
+    """Static page to notify users of survey completion"""
+    return render_template("thankyou.html")
 
 
 @flask_app.errorhandler(404)

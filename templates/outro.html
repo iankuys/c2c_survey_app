@@ -14,7 +14,7 @@
     {% endif %}
 
     <!--Questions, Responses, and Submit-->
-    <form action=" {{ url_for('outro') }}" method="post">
+    <form action=" {{ url_for('outro', key=key) }}" method="post">
         <div class="container">
             <!--Question 1-->
            <p><label for "Question 1"> Question 1 </label></p>
