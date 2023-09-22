@@ -32,7 +32,7 @@ BUBBLE_MESSAGES = {
 
 # List of screen numbers that this survey has
 # ALLOWED_SCREENS = [1, 2, 3, 4, 5, 6, 7]
-MAX_SCREENS = 1  # Change to 7 when in production
+MAX_SCREENS = 7  # Change to 7 when in production
 
 VIDEOS = mindlib.json_to_dict("./content/videos.json")
 UNDEFINED_VID_ID_PLACEHOLDER = "UNDEFINED"
@@ -489,8 +489,24 @@ def outro():
             q3_response = request.form.get("q3")
             print(f"[{hashed_id}] outro responses: {q1_response}, {q2_response}, {q3_response}")
 
-            # check if all questions were answered
+            # check if all questions were answered. if yes, import and head to thankyou screen
             if len(q1_response) > 0 and len(q2_response) > 0 and len(q3_response) > 0:
+                outro_data = [
+                    {
+                        HASHED_ID_EXPERIMENT_REDCAP_VAR: hashed_id,
+                        "redcap_event_name": "outroscreen_arm_1",
+                        "outro_q1": q1_response,
+                        "outro_q2": q2_response,
+                        "outro_q3": q3_response,
+                        "outro_complete": 2,
+                    }
+                ]
+                import_result = redcap_helpers.import_record(
+                    flask_app.config["C2C_DCV_API_TOKEN"],
+                    flask_app.config["REDCAP_API_URL"],
+                    outro_data,
+                )
+                print(f"[{hashed_id}] Uploaded {import_result} outro record(s) to REDCap")
                 return redirect(url_for("thankyou"), code=301)
             else:
                 # if not all answered, reload outro page with error message
