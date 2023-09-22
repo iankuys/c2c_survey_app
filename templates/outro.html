@@ -8,7 +8,7 @@
     <!--Error Bubble message-->
     {% if error_message %}
     <div class="alert alert-warning d-flex justify-content-between">
-        {{ error_message }}<a href="{{ url_for('outro') }}"
+        {{ error_message }}<a href="{{ url_for('outro', key = key) }}"
             style="text-decoration: none; color: #604f03;font-weight: bolder;">×</a>
     </div>
     {% endif %}
