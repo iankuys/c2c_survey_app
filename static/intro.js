@@ -4,15 +4,8 @@ const server = "http://127.0.0.1:8000/c2c-retention-dce";
 //const server = "https://studies.mind.uci.edu/c2c-retention-dce";
 
 // For any given video page: video A is on the left/top, video B is on the right/bottom
-const VIDEO_A_HTML_ID = "videoA";
-const VIDEO_A_SELECT_BUTTON_HTML_ID = "videoASelect";
-const VIDEO_A_MESSAGE_BOX_HTML_ID = "videoAMessage";
-// const VIDEO_B_HTML_ID = "videoB";
-// const VIDEO_B_SELECT_BUTTON_HTML_ID = "videoBSelect";
-// const VIDEO_B_MESSAGE_BOX_HTML_ID = "videoBMessage";
-
-const VIDEO_SUBMIT_BUTTON_HTML_ID = "submitVideoSelection";
-const VIDEO_SUBMIT_LOADING_BUTTON_HTML_ID = "loading_button";
+const INTRO_VID_HTML_ID = "introVideo";
+const INTRO_VID_URL = "https://player.vimeo.com/video/653428289?h=c155f1e87b";
 
 // Number of seconds from the beginning of a video that a user can seek to
 // that counts as "from the beginning" (in case they skipped ahead and need to restart the video)
@@ -22,19 +15,13 @@ const SEEK_BEGINNING_THRESHOLD = 2;
 
 let videoPageStartTime = "";
 let videoPageEndTime = "";
-
-let videoA;
-// let videoB;
+let introVid;
 
 const _params = new Proxy(new URLSearchParams(window.location.search), {
     get: (searchParams, prop) => searchParams.get(prop),
 });
 const access_key = _params.key;
 const thisScreenFromURL = parseInt(_params.screen);
-let mostCompletedScreen = 0;
-
-const finalSelectionButton = document.getElementById(VIDEO_SUBMIT_BUTTON_HTML_ID);
-const finalSelectionLoadingButton = document.getElementById(VIDEO_SUBMIT_LOADING_BUTTON_HTML_ID);
 
 //// Helpers ////
 
@@ -63,58 +50,6 @@ function parseVimeoResponse(data, attr) {
     }
 };
 
-function getVideoPositionFromHTML(videoDivID) {
-    // Reads the video survey page's HTML content to obtain the video's position
-    // as an integer.
-    // Also sets the inner text of that element to be blank so it can be replaced
-    // with a Vimeo player element.
-    // Returns the integer position on success, or 0 on failure (if the video HTML
-    // element can't be found or if it can't be interpreted as an integer).
-    videoElement = document.getElementById(videoDivID);
-    if (videoElement) {
-        let vidPosition = videoElement.innerHTML;
-        videoElement.innerText = "";
-        let result = parseInt(vidPosition);
-        if (!isNaN(result)) {
-            return result;
-        }
-    }
-    return 0;
-}
-
-function getVideoInfoFromCookie(videoPos, vidsCookies, cookieSuffix) {
-    let cookieName = `v${videoPos}_${cookieSuffix}`;
-    return vidsCookies[cookieName];
-}
-
-function cookiesToJSON(cookieString) {
-    let output = {};
-    cookieString.split(/\s*;\s*/).forEach(function (pair) {
-        pair = pair.split(/\s*=\s*/);
-        output[pair[0]] = pair.splice(1).join('=');
-    });
-    return output;
-}
-
-// function jsonToCookieString(cookieJSON) {
-//     let result = "";
-//     for (const attr in cookieJSON) {
-//         result = result.concat(`; ${attr}=${cookieJSON[attr]}`);
-//     };
-//     console.log(`Created cookie string: "${result}"`);
-//     return result;
-// }
-
-function getVideos(cookiesJSON) {
-    result = {};
-    for (const c in cookiesJSON) {
-        if (c.startsWith("v") && (c.endsWith("_id") || c.endsWith("_url"))) {
-            result[c] = cookiesJSON[c];
-        }
-    }
-    return result;
-}
-
 function getUTCTimestampNow(includeMilliseconds = true) {
     // YYYY-MM-DD hh:mm:ss.mis
     const d = new Date();
@@ -131,7 +66,7 @@ function getUTCTimestampNow(includeMilliseconds = true) {
     return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}.${milliseconds}`;
 }
 
-function createLogEntry(vimeo_data, data_label, video_position, video_id) {
+function createLogEntry(vimeo_data, data_label) {
     const UTCTimestamp = getUTCTimestampNow();
 
     // Base log entry - modify or add to this depending on event type and event data
@@ -178,12 +113,8 @@ function createLogEntry(vimeo_data, data_label, video_position, video_id) {
 }
 
 class VideoChoice {
-    constructor(idsAndURLs, playerHTMLID, selectButtonHTMLID, messageBoxHTMLID) {
-        this.position = getVideoPositionFromHTML(playerHTMLID);
-        this.vid_id = getVideoInfoFromCookie(this.position, idsAndURLs, "id");
-        this.url = getVideoInfoFromCookie(this.position, idsAndURLs, "url");
-        this.selectButtonID = selectButtonHTMLID;
-        this.messageBoxID = messageBoxHTMLID;
+    constructor(videoUrl) {
+        this.url = videoUrl;
 
         this.logs = [];
         this.startTimestamp = "";
@@ -196,73 +127,45 @@ class VideoChoice {
     }
     getLog() {
         // Returns a string containing essential data about this object
-        return `VideoChoice(position=${this.position}, vid_id=${this.vid_id}, url=${this.url}, startTimestamp=${this.startTimestamp}, endTimestamp=${this.endTimestamp}, skipped=${this.skipped}, pauseCount=${this.pauseCount}, watchCount=${this.watchCount}, finished=${this.finished})`;
+        return `VideoChoice(position=${this.position}, url=${this.url}, startTimestamp=${this.startTimestamp}, endTimestamp=${this.endTimestamp}, skipped=${this.skipped}, pauseCount=${this.pauseCount}, watchCount=${this.watchCount}, finished=${this.finished})`;
     }
 }
 
 async function setupVideoPlayer() {
-    let allCookies = cookiesToJSON(document.cookie);
 
-    let allIDsAndURLs = getVideos(allCookies);
-    mostCompletedScreen = parseInt(allCookies["completed_screen"]);
-
-    videoA = new VideoChoice(allIDsAndURLs, VIDEO_A_HTML_ID, VIDEO_A_SELECT_BUTTON_HTML_ID, VIDEO_A_MESSAGE_BOX_HTML_ID);
-    // videoB = new VideoChoice(allIDsAndURLs, VIDEO_B_HTML_ID, VIDEO_B_SELECT_BUTTON_HTML_ID, VIDEO_B_MESSAGE_BOX_HTML_ID);
-
-    if (videoA.position <= 0) { //|| videoB.position <= 0) {
-        // Need both videos to load - if they load correctly, their positions will be >= 1
-        console.log(`Did not load videos due to invalid positions (A: ${videoA.position})`) //, B: ${videoB.position})`)
-        return;
-    }
+    var iframe = document.querySelector('iframe');
+    introVid = new VideoChoice(INTRO_VID_URL);
 
     // Initialize Vimeo player inside their respective VideoChoice objects
-    videoA.player = new Vimeo.Player(VIDEO_A_HTML_ID, { url: videoA.url });
-    // videoB.player = new Vimeo.Player(VIDEO_B_HTML_ID, { url: videoB.url });
-    console.log(`Loaded Video A: ${videoA.getLog()}`);
-    // console.log(`Loaded Video B: ${videoB.getLog()}`);
-
+    introVid.player = new Vimeo.Player(iframe);
+    console.log(`Loaded Video A: ${introVid.getLog()}`);
     videoPageStartTime = getUTCTimestampNow(includeMilliseconds = false);
-    console.log(`Most recently completed screen: ${mostCompletedScreen} (screen from URL: ${thisScreenFromURL}) started at ${videoPageStartTime}`);
-    console.log(`Loaded videos ${videoA.vid_id} (pos ${videoA.position})`); // and ${videoB.vid_id} (pos ${videoB.position})`);
 
-    function setupPlayerEvents(videoObj) { //, otherVideoObj) {
-        // https://developer.vimeo.com/player/sdk/reference#events-for-playback-controls
-        var _videoMessageBoxElement = document.getElementById(videoObj.messageBoxID);
-        var _selectionButtonElement = document.getElementById(videoObj.selectButtonID);
-        var _otherSelectionButtonElement = document.getElementById(otherVideoObj.selectButtonID);
-        // console.log(_videoMessageBoxElement.innerText);
+    function setupPlayerEvents(videoObj) {
+
         videoObj.player.on('play', function (data) {
-            // Automatically pause when the other video is already playing:
-            otherVideoObj.player.getPaused().then(function (paused) {
-                if (paused == false) {
-                    otherVideoObj.player.pause().then(function () {
-                        // console.log("Paused the other Vimeo player.");
-                        videoObj.logs.push(createLogEntry(data, "SWITCHED TO THIS VIDEO", videoObj.position, videoObj.vid_id));
-                    });
-                }
-            });
             if (videoObj.startTimestamp == "") {
                 videoObj.startTimestamp = getUTCTimestampNow(includeMilliseconds = false);
-                console.log(`Set video @ pos ${videoObj.position} start time to ${videoObj.startTimestamp}`);
+                console.log(`playing`);
             }
-            videoObj.logs.push(createLogEntry(data, "PLAYED AT", videoObj.position, videoObj.vid_id));
+            videoObj.logs.push(createLogEntry(data, "PLAYED AT"));
             videoObj.playbackPosition = parseVimeoResponse(data, "seconds");
         })
         videoObj.player.on('pause', function (data) {
             videoObj.pauseCount = videoObj.pauseCount + 1;
-            videoObj.logs.push(createLogEntry(data, "PAUSED AT", videoObj.position, videoObj.vid_id));
+            videoObj.logs.push(createLogEntry(data, "PAUSED AT"));
         })
         videoObj.player.on('volumechange', function (data) {
             // NOTE: Some devices don't support the ability to set the volume of the video independently of
             // the system volume, so this event never fires on those devices.
             // glitch with Vimeo API: toggling mute (clicking the volume icon) always returns "1" (the maximum)
             // instead of "0" when mute is activated
-            videoObj.logs.push(createLogEntry(data, "VOLUME CHANGED TO", videoObj.position, videoObj.vid_id));
+            videoObj.logs.push(createLogEntry(data, "VOLUME CHANGED TO"));
         })
         videoObj.player.on('playbackratechange', function (data) {
             // NOTE: If the creator of the video has disabled the ability of the viewer to change the playback
             // rate, this event doesn't fire.
-            videoObj.logs.push(createLogEntry(data, "VIDEO SPEED CHANGED TO", videoObj.position, videoObj.vid_id));
+            videoObj.logs.push(createLogEntry(data, "VIDEO SPEED CHANGED TO"));
         })
         videoObj.player.on('seeked', function (data) {
             // Important playback positions in seconds
@@ -271,26 +174,18 @@ async function setupVideoPlayer() {
             // console.log(`Video ${videoObj.position} (ID ${videoObj.vid_id}): playback position BEFORE seek: ${positionBeforeSeek}`)
             if (positionBeforeSeek < positionAfterSeek) {
                 // Don't allow this view to count as "watched" if the user skips ahead
-                videoObj.logs.push(createLogEntry(data, "SEEKED AHEAD TO", videoObj.position, videoObj.vid_id));
-                if (!videoObj.finished) {
-                    console.log(`Video ${videoObj.position} - not counting this view`)
-                    _videoMessageBoxElement.innerText = "❌ Video not yet finished ❌\nPlease do not skip ahead in the video.";
-                }
+                videoObj.logs.push(createLogEntry(data, "SEEKED AHEAD TO"));
                 videoObj.skipped = true;
             } else if (positionBeforeSeek >= positionAfterSeek) {
                 // Don't penalize the user for skipping behind
-                videoObj.logs.push(createLogEntry(data, "SEEKED BEHIND TO", videoObj.position, videoObj.vid_id));
+                videoObj.logs.push(createLogEntry(data, "SEEKED BEHIND TO"));
             }
             videoObj.playbackPosition = positionAfterSeek;
 
             if (positionAfterSeek <= SEEK_BEGINNING_THRESHOLD) {
                 // If a user skips to the beginning, reset skips flag and re-allow this viewing
-                videoObj.logs.push(createLogEntry(data, "SEEKED TO START", videoObj.position, videoObj.vid_id));
-                console.log(`Video ${videoObj.position} (ID ${videoObj.vid_id}): skipped back to the beginning`);
+                videoObj.logs.push(createLogEntry(data, "SEEKED TO START"));
                 videoObj.skipped = false;
-                if (!videoObj.finished) {
-                    _videoMessageBoxElement.innerText = "❌ Video not yet finished ❌";
-                }
             }
         })
         videoObj.player.on('timeupdate', function (data) {
@@ -310,73 +205,29 @@ async function setupVideoPlayer() {
             // console.log("Video 01 ENDED");
             // When a video finishes, a pause event is fired, so manually decrement pause count
             videoObj.pauseCount = videoObj.pauseCount - 1;
+
             if (!videoObj.skipped) {
                 // There were no skips: enable the selection button
                 videoObj.finished = true;
                 videoObj.watchCount = videoObj.watchCount + 1;
                 videoObj.endTimestamp = getUTCTimestampNow(includeMilliseconds = false);
-                console.log(`Set video @ pos ${videoObj.position} end time to ${videoObj.endTimestamp}`);
-                _videoMessageBoxElement.innerText = "✅ Video finished ✅";
-            } else {
-                // There were skips
-                if (!videoObj.finished) {
-                    _videoMessageBoxElement.innerText = "❌ Video not yet finished ❌\nPlease watch the entire video before making a selection.";
-                }
+
             }
 
-            // Enable buttons when both videos are finished and with no skips
-            if (videoObj.finished && otherVideoObj.finished) {
-                _selectionButtonElement.disabled = false;
-                _otherSelectionButtonElement.disabled = false;
-            }
-            console.log(`Video ${videoObj.position} (ID ${videoObj.vid_id}): ended with ${videoObj.pauseCount} pause(s), watched ${videoObj.watchCount} time(s)`);
-            console.log(`Video ${videoObj.position} (ID ${videoObj.vid_id}): any skips? ${videoObj.skipped}`);
         })
-        // videoPlayer.on('progress', (data) => {
-        // //If the player percent is over 0.95, updateProgress to 100% and remove all listeners
-        //     if(data.percent > 0.95) {
-        //         //Manually set the data to 100
-        //         data.percent = 1;
-        //         //Remove the listeners
-        //         videoPlayer.off('pause');
-        //         videoPlayer.off('seeked');
-        //         videoPlayer.off('progress');
-        //         //Update the progress to be 100
-        //         updateProgress(data, 'seeked');
-        //     }
-        // })
+
     }
-    setupPlayerEvents(videoA); //, otherVideoObj = videoB);
-    // setupPlayerEvents(videoB, otherVideoObj = videoA);
+    setupPlayerEvents(introVid);
 }
 
 async function uploadVideoSelection() {
-    let ele = document.getElementsByName('options');
-    let selectedVideoPos;
-    let selectedVideo;
 
-    for (i = 0; i < ele.length; i++) {
-        if (ele[i].checked) {
-            selectedVideoPos = ele[i].value;
-        }
-    }
-
-    if (videoA.finished) { // && videoB.finished) {
-        finalSelectionButton.setAttribute('hidden', '');
-        finalSelectionLoadingButton.removeAttribute('hidden');
-        if (selectedVideoPos == videoA.position) {
-            selectedVideo = videoA;
-        }
-        // } else {
-        //     selectedVideo = videoB;
-        // }
-        console.log(`User selected this video: ${selectedVideo.getLog()}`);
+    if (introVid.finished) {
 
         videoPageEndTime = getUTCTimestampNow(includeMilliseconds = false);
 
         // Add 1 to the most completed screen to get THIS screen
         let thisCompletedScreen = mostCompletedScreen + 1;
-        document.cookie = `completed_screen=${thisCompletedScreen}`;
 
         const requestOptions = {
             method: "POST",
@@ -387,14 +238,10 @@ async function uploadVideoSelection() {
                 user_agent: navigator.userAgent,
                 screen: thisCompletedScreen,
                 screen_time_start: videoPageStartTime,
-                vidA_playback_time_start: videoA.startTimestamp,
-                vidA_playback_time_end: videoA.endTimestamp,
-                vidA_watch_count: videoA.watchCount,
-                vidA_logs: videoA.logs,
-                // vidB_playback_time_start: videoB.startTimestamp,
-                // vidB_playback_time_end: videoB.endTimestamp,
-                // vidB_watch_count: videoB.watchCount,
-                // vidB_logs: videoB.logs,
+                vidA_playback_time_start: introVid.startTimestamp,
+                vidA_playback_time_end: introVid.endTimestamp,
+                vidA_watch_count: introVid.watchCount,
+                vidA_logs: introVid.logs,
                 selected_vid_id: selectedVideo.vid_id,
                 selected_vid_position: selectedVideo.position,
                 screen_time_end: videoPageEndTime

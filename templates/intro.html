@@ -10,14 +10,14 @@
     <p>When you are ready, click "GET STARTED."</p>
     <p>[DEBUG] INTRO PAGE</p>
     <div class="row">
-        <div class="intro video">
+        <div id="introVideo">
         <h2>Intro Video</h2>
         <iframe title="vimeo-player" src="https://player.vimeo.com/video/653428289?h=c155f1e87b" width="640" height="360" frameborder="0"    allowfullscreen></iframe>
         </div>
     </div>
     <div class="pt-4 d-grid gap-2 col-6 mx-auto">
         <a href="{{ url_for('videos', key=key, screen=1) }}" class="btn btn-primary btn-lg" id="submit_button">GET STARTED</a>
-        <button hidden type="button" class="btn btn-primary btn-lg disabled" id="loading_button">
+        <button onclick="uploadVideoSelection()" hidden type="button" class="btn btn-primary btn-lg disabled" id="loading_button">
             <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
             Loading....
         </button>
