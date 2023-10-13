@@ -47,7 +47,7 @@ def import_record(token: str, url: str, records: list[dict]) -> int:
         "returnFormat": "json",
     }
     r = requests.post(url, data=request_params)
-    # print('>>> HTTP Status: ' + str(r.status_code))
+    # print(">>> HTTP Status: " + str(r.status_code))
     result = json.loads(r.text)
     if type(result) == dict:
         if "error" in result:

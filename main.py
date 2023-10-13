@@ -68,6 +68,19 @@ class VideoPageIn(BaseModel):
     screen_time_end: str
 
 
+class IntroPageIn(BaseModel):
+    """Data about a video page after the participant selected a video."""
+
+    user_agent: str
+
+    vid_playback_time_start: str
+    vid_playback_time_end: str
+    vid_watch_count: int
+    vid_logs: List[dict]
+
+    vid_id: str
+
+
 # class VideosOut(BaseModel):
 #     """Data about 2 videos to send to participants."""
 
@@ -136,6 +149,28 @@ async def get_video_choice(video_page_data: VideoPageIn, key: str | None = None)
         # print(record_as_str)
         import_result = redcap_helpers.import_record(
             secrets["C2C_DCV_API_TOKEN"], secrets["REDCAP_API_URL"], [redcap_video_page_record]
+        )
+        print(f"[{key}] Uploaded {import_result} record(s) to REDCap")
+    else:
+        print("No access key detected")
+
+
+@app.post(f"/{URL_PREFIX}/intro_vid_info")
+async def get_intro_info(video_page_data: IntroPageIn, key: str | None = None) -> None:
+    if key:
+        redcap_intro_page_record = {
+            "access_key": key,
+            "redcap_event_name": "introscreen_arm_1",
+            "single_video_id": video_page_data.vid_id,
+            "single_video_playcount": video_page_data.vid_watch_count,
+            "single_video_tm_start": video_page_data.vid_playback_time_start,
+            "single_video_tm_end": video_page_data.vid_playback_time_end,
+            "single_video_logs": transform_logs(video_page_data.vid_logs),
+            "single_video_complete": "2",
+        }
+
+        import_result = redcap_helpers.import_record(
+            secrets["C2C_DCV_API_TOKEN"], secrets["REDCAP_API_URL"], [redcap_intro_page_record]
         )
         print(f"[{key}] Uploaded {import_result} record(s) to REDCap")
     else:

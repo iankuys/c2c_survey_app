@@ -115,6 +115,7 @@ function createLogEntry(vimeo_data, data_label) {
 class VideoChoice {
     constructor(videoUrl) {
         this.url = videoUrl;
+        this.vid_id = "intro"
 
         this.logs = [];
         this.startTimestamp = "";
@@ -146,7 +147,6 @@ async function setupVideoPlayer() {
         videoObj.player.on('play', function (data) {
             if (videoObj.startTimestamp == "") {
                 videoObj.startTimestamp = getUTCTimestampNow(includeMilliseconds = false);
-                console.log(`playing`);
             }
             videoObj.logs.push(createLogEntry(data, "PLAYED AT"));
             videoObj.playbackPosition = parseVimeoResponse(data, "seconds");
@@ -222,37 +222,24 @@ async function setupVideoPlayer() {
 
 async function uploadVideoSelection() {
 
-    if (introVid.finished) {
-
-        videoPageEndTime = getUTCTimestampNow(includeMilliseconds = false);
-
-        // Add 1 to the most completed screen to get THIS screen
-        let thisCompletedScreen = mostCompletedScreen + 1;
-
-        const requestOptions = {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-                user_agent: navigator.userAgent,
-                screen: thisCompletedScreen,
-                screen_time_start: videoPageStartTime,
-                vidA_playback_time_start: introVid.startTimestamp,
-                vidA_playback_time_end: introVid.endTimestamp,
-                vidA_watch_count: introVid.watchCount,
-                vidA_logs: introVid.logs,
-                selected_vid_id: selectedVideo.vid_id,
-                selected_vid_position: selectedVideo.position,
-                screen_time_end: videoPageEndTime
-            })
-        }
-        const url = `${server}/video_selected?key=${access_key}`;
-        await fetch(url, requestOptions);
-        window.location.href = `${server}/survey/videos?key=${access_key}&screen=${thisCompletedScreen + 1}`;
-    } else {
-        alert("Please finish watching all videos before making a selection.");
+    const requestOptions = {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+            user_agent: navigator.userAgent,
+            vid_playback_time_start: introVid.startTimestamp,
+            vid_playback_time_end: introVid.endTimestamp,
+            vid_watch_count: introVid.watchCount,
+            vid_logs: introVid.logs,
+            vid_id: introVid.vid_id,
+        })
     }
+    console.log(introVid.logs);
+    const url = `${server}/intro_vid_info?key=${access_key}`;
+    await fetch(url, requestOptions);
+    window.location.href = `${server}/survey/videos?key=${access_key}&screen=1`;
 }
 
 function activateSelectionButton() {
