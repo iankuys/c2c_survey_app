@@ -1,0 +1,5 @@
+Strongly Disagree
+Somewhat Disagree
+Neutral
+Somewhat Agree
+Strongly Agree

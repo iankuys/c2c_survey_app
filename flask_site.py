@@ -9,6 +9,7 @@ import mindlib
 import redcap_helpers
 
 FLASK_APP_PATH = "/c2c-retention-dce/survey"
+secrets = mindlib.json_to_dict("secrets.json")
 
 # The REDCap variable in this experiment's REDCap project that contains unique hashed C2C IDs
 HASHED_ID_EXPERIMENT_REDCAP_VAR = "access_key"
@@ -500,6 +501,54 @@ def outro():
             return render_template("outro.html", key=hashed_id)  # initial visit render
 
     return redirect(url_for("index", msg="missing_key"), code=301)
+
+
+@flask_app.route("/survey", methods=["GET", "POST"])
+def survery():
+    survey_path = "static/survey.txt"
+    survey_choices_path = "static/survey_choice.txt"
+    check_choices_path = "static/check_choice.txt"
+
+    with open(survey_path, "r") as file:
+        questions = [line.strip() for line in file.readlines()]
+
+    with open(survey_choices_path, "r") as file:
+        choices = [line.strip() for line in file.readlines()]
+
+    with open(check_choices_path, "r") as file:
+        check_choices = [line.strip() for line in file.readlines()]
+
+    return render_template(
+        "survey.html", questions=questions, choices=choices, check_choices=check_choices
+    )
+
+
+@flask_app.route("/submit", methods=["POST"])
+def get_form():
+    if "key" in request.args and len(request.args["key"]) > 0:
+        hashed_id = sanitize_key(request.args["key"])
+
+        if request.method == "POST":
+            redcap_outro_page_record = {
+                "access_key": key,
+                "redcap_event_name": "outroscreen_arm_1",
+                "outro_q1": f"{request.form['outro_q1']}",
+                "outro_q2": f"{request.form['outro_q1']}",
+                "outro_q3": f"{request.form['outro_q1']}",
+                "outro_q4": f"{request.form['outro_q1']}",
+                "outro_q5": f"{request.form['outro_q1']}",
+                "outro_q6": f"{request.form['outro_q1']}",
+                "outro_q7": f"{request.form['outro_q1']}",
+                "outro_q8": f"{request.form['outro_q1']}",
+                "outro_q9": f"{request.form['outro_q1']}",
+                "outro_q10": f"{request.form['outro_q1']}",
+                "outro_complete": 2,
+            }
+            import_result = redcap_helpers.import_record(
+                secrets["C2C_DCV_API_TOKEN"], secrets["REDCAP_API_URL"], [redcap_outro_page_record]
+            )
+
+    return redirect("/thankyou")
 
 
 @flask_app.route("/thankyou", methods=["GET"])
