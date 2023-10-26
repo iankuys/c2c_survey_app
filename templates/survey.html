@@ -16,28 +16,26 @@
     <div>
         <form class="col-lg-6 offset-lg-3 " method="post">
             {% for question in questions %}
-            <div class="row justify-content-center form-group">
-                <label for="fname">{{question}}</label>
+            <div class="row justify-content-center form-group py-4" style="outline: 1px dotted rgba(0, 0, 0, 0.25)">
+                <label class="fw-bold" for="fname">{{question}}</label>
                 {% set name = "outro_q" + loop.index|string %}
                 {% if loop.index <= 9 %}
-                <div class="row">
-                    {% for option in choices %}
-                        <div class="col">
-                            {% set id = name + "_option" + loop.index|string %}
-                            <input class="form-check-input" type="radio" name="{{ name }}" id="{{ id }}" value="{{ loop.index }}" required>
-                            <label class="form-check-label" for="{{ id }}">
-                                {{ option }}
-                            </label>
-                        </div>
+                    <div class="row">
+                        {% for option in choices %}
+                            <div class="col text-center">
+                                {% set id = name + "_option" + loop.index|string %}
+                                <input class="form-check-input" type="radio" name="{{ name }}" id="{{ id }}" value="{{ loop.index }}" required>
+                                <label class="form-check-label" for="{{ id }}">
+                                    {{ option }}
+                                </label>
+                            </div>
 
                     {% endfor %}
+                    </div>
                 {% else %}
-                    <div class="row justify-content-center form-group">
-                        <label for="fname">
-                        </label>
-                        <div class = "row form-check">
+                    <div class = "row form-check">
                         {% for option in check_choices %}
-                        <div class="col">                    
+                        <div class="col py-2">                    
                             {% set id = "check" + loop.index|string %}
                             <input class="form-check-input" type="radio" name="{{ name }}" id="{{ id }}" value="{{ loop.index }}" required>
                             <label class="form-check-label" for="{{ id }}">
@@ -46,14 +44,11 @@
                         </div>
                         {% endfor %}
                     </div>
-                    </div>
-                {% endif %} 
+                    <button type="submit" name="send_it" class="btn btn-primary">Submit</button>
                 </div>
+                {% endif %} 
             </div>
             {% endfor %}
-            <div class="row justify-content-center form-group">
-                <button type="submit" name="send_it" class="btn btn-primary">Submit</button>
-            </div>
         </form>
     </div>
 </body>
