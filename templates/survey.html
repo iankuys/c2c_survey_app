@@ -14,7 +14,7 @@
 <body>
     <h2 class="row justify-content-center"> Survey </h2>
     <div>
-        <form class="col-lg-6 offset-lg-3 " method="post" action="/c2c-retention-dce/survey/submit">
+        <form class="col-lg-6 offset-lg-3 " method="post">
             {% for question in questions %}
             <div class="row justify-content-center form-group">
                 <label for="fname">{{question}}</label>
@@ -23,8 +23,8 @@
                 <div class="row">
                     {% for option in choices %}
                         <div class="col">
-                            {% set id = "option" + loop.index|string %}
-                            <input class="form-check-input" type="radio" name="{{ name }}" id="{{ id }}" value="{{ loop.indxes }}" required>
+                            {% set id = name + "_option" + loop.index|string %}
+                            <input class="form-check-input" type="radio" name="{{ name }}" id="{{ id }}" value="{{ loop.index }}" required>
                             <label class="form-check-label" for="{{ id }}">
                                 {{ option }}
                             </label>
@@ -39,7 +39,7 @@
                         {% for option in check_choices %}
                         <div class="col">                    
                             {% set id = "check" + loop.index|string %}
-                            <input class="form-check-input" type="radio" name="{{ name }}" id="{{ id }}" value="{{ loop.indxes }}" required>
+                            <input class="form-check-input" type="radio" name="{{ name }}" id="{{ id }}" value="{{ loop.index }}" required>
                             <label class="form-check-label" for="{{ id }}">
                                 {{ option }}
                             </label>

@@ -454,101 +454,92 @@ def outro():
 
         # get user's responses from html
         if request.method == "POST":
-            q1_response = request.form.get("q1")
-            q2_response = request.form.get("q2")
-            q3_response = request.form.get("q3")
-            print(f"[{hashed_id}] outro responses: {q1_response}, {q2_response}, {q3_response}")
-
-            # check if all questions were answered. if yes, import and head to thankyou screen
-            if len(q1_response) > 0 and len(q2_response) > 0 and len(q3_response) > 0:
-                outro_data = [
-                    {
-                        HASHED_ID_EXPERIMENT_REDCAP_VAR: hashed_id,
-                        "redcap_event_name": "outroscreen_arm_1",
-                        "outro_q1": q1_response,
-                        "outro_q2": q2_response,
-                        "outro_q3": q3_response,
-                        "outro_complete": 2,
-                    }
-                ]
-                import_result = redcap_helpers.import_record(
-                    flask_app.config["C2C_DCV_API_TOKEN"],
-                    flask_app.config["REDCAP_API_URL"],
-                    outro_data,
-                )
-                print(f"[{hashed_id}] Uploaded {import_result} outro record(s) to REDCap")
-                return redirect(url_for("thankyou"), code=301)
-            else:
-                # if not all answered, reload outro page with error message
-                return redirect(
-                    url_for(
-                        "outro",
-                        key=hashed_id,
-                        error_code="incomplete_outro",
-                    ),
-                    code=301,
-                )
-        else:  # request.method == GET
-            # bubble error message if outro was not completed
-            if "error_code" in request.args and len(request.args["error_code"]) > 0:
-                error_code = request.args["error_code"]
-                if error_code not in BUBBLE_MESSAGES:
-                    error_code = "unknown"
-                return render_template(
-                    "outro.html", key=hashed_id, error_message=BUBBLE_MESSAGES[error_code]
-                )
-
-            return render_template("outro.html", key=hashed_id)  # initial visit render
-
-    return redirect(url_for("index", msg="missing_key"), code=301)
-
-
-@flask_app.route("/survey", methods=["GET", "POST"])
-def survery():
-    survey_path = "static/survey.txt"
-    survey_choices_path = "static/survey_choice.txt"
-    check_choices_path = "static/check_choice.txt"
-
-    with open(survey_path, "r") as file:
-        questions = [line.strip() for line in file.readlines()]
-
-    with open(survey_choices_path, "r") as file:
-        choices = [line.strip() for line in file.readlines()]
-
-    with open(check_choices_path, "r") as file:
-        check_choices = [line.strip() for line in file.readlines()]
-
-    return render_template(
-        "survey.html", questions=questions, choices=choices, check_choices=check_choices
-    )
-
-
-@flask_app.route("/submit", methods=["POST"])
-def get_form():
-    if "key" in request.args and len(request.args["key"]) > 0:
-        hashed_id = sanitize_key(request.args["key"])
-
-        if request.method == "POST":
+            print(request.form)
             redcap_outro_page_record = {
-                "access_key": key,
+                "access_key": hashed_id,
                 "redcap_event_name": "outroscreen_arm_1",
                 "outro_q1": f"{request.form['outro_q1']}",
-                "outro_q2": f"{request.form['outro_q1']}",
-                "outro_q3": f"{request.form['outro_q1']}",
-                "outro_q4": f"{request.form['outro_q1']}",
-                "outro_q5": f"{request.form['outro_q1']}",
-                "outro_q6": f"{request.form['outro_q1']}",
-                "outro_q7": f"{request.form['outro_q1']}",
-                "outro_q8": f"{request.form['outro_q1']}",
-                "outro_q9": f"{request.form['outro_q1']}",
-                "outro_q10": f"{request.form['outro_q1']}",
+                "outro_q2": f"{request.form['outro_q2']}",
+                "outro_q3": f"{request.form['outro_q3']}",
+                "outro_q4": f"{request.form['outro_q4']}",
+                "outro_q5": f"{request.form['outro_q5']}",
+                "outro_q6": f"{request.form['outro_q6']}",
+                "outro_q7": f"{request.form['outro_q7']}",
+                "outro_q8": f"{request.form['outro_q8']}",
+                "outro_q9": f"{request.form['outro_q9']}",
+                "outro_q10": f"{request.form['outro_q10']}",
                 "outro_complete": 2,
             }
+            print(f"[{hashed_id}] outro responses: {redcap_outro_page_record}")
+
             import_result = redcap_helpers.import_record(
                 secrets["C2C_DCV_API_TOKEN"], secrets["REDCAP_API_URL"], [redcap_outro_page_record]
             )
+            return redirect(url_for("thankyou"), code=301)
 
-    return redirect("/thankyou")
+            # # q1_response = request.form.get("q1")
+            # # q2_response = request.form.get("q2")
+            # # q3_response = request.form.get("q3")
+            # # print(f"[{hashed_id}] outro responses: {q1_response}, {q2_response}, {q3_response}")
+
+            # # # check if all questions were answered. if yes, import and head to thankyou screen
+            # # if len(q1_response) > 0 and len(q2_response) > 0 and len(q3_response) > 0:
+            # #     outro_data = [
+            # #         {
+            # #             HASHED_ID_EXPERIMENT_REDCAP_VAR: hashed_id,
+            # #             "redcap_event_name": "outroscreen_arm_1",
+            # #             "outro_q1": q1_response,
+            # #             "outro_q2": q2_response,
+            # #             "outro_q3": q3_response,
+            # #             "outro_complete": 2,
+            # #         }
+            # #     ]
+            # #     import_result = redcap_helpers.import_record(
+            # #         flask_app.config["C2C_DCV_API_TOKEN"],
+            # #         flask_app.config["REDCAP_API_URL"],
+            # #         outro_data,
+            # #     )
+            # #     print(f"[{hashed_id}] Uploaded {import_result} outro record(s) to REDCap")
+            # #     return redirect(url_for("thankyou"), code=301)
+            # else:
+            #     # if not all answered, reload outro page with error message
+            #     return redirect(
+            #         url_for(
+            #             "outro",
+            #             key=hashed_id,
+            #             error_code="incomplete_outro",
+            #         ),
+            #         code=301,
+            #     )
+        else:  # request.method == GET
+            # bubble error message if outro was not completed
+            # if "error_code" in request.args and len(request.args["error_code"]) > 0:
+            #     error_code = request.args["error_code"]
+            #     if error_code not in BUBBLE_MESSAGES:
+            #         error_code = "unknown"
+            #     return render_template(
+            #         "outro.html", key=hashed_id, error_message=BUBBLE_MESSAGES[error_code]
+            #     )
+            # return render_template("outro.html", key=hashed_id)  # initial visit render
+
+            survey_path = "static/survey.txt"
+            survey_choices_path = "static/survey_choice.txt"
+            check_choices_path = "static/check_choice.txt"
+
+            with open(survey_path, "r") as file:
+                questions = [line.strip() for line in file.readlines()]
+
+            with open(survey_choices_path, "r") as file:
+                choices = [line.strip() for line in file.readlines()]
+
+            with open(check_choices_path, "r") as file:
+                check_choices = [line.strip() for line in file.readlines()]
+
+            return render_template(
+                "survey.html", questions=questions, choices=choices, check_choices=check_choices
+            )
+
+    return redirect(url_for("index", msg="missing_key"), code=301)
 
 
 @flask_app.route("/thankyou", methods=["GET"])
