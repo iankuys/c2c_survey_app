@@ -90,7 +90,9 @@ def check_email_addr_and_send_email(
     our_from_email_display_name: str,
     our_from_email_password: str,
 ) -> None:
-    """If applicable, sends a reminder email to a user containing their access key for this experiment."""
+    """If applicable, sends a reminder email to a user containing their access key for this experiment.
+    Unused because functionality related to sending emails has been removed from the requirements.
+    """
     print(f"[{user_submitted_email_address}] - checking email to send access key")
     active_c2cv3_emails = redcap_helpers.export_redcap_report(
         flask_app.config["C2CV3_API_TOKEN"],
@@ -109,14 +111,12 @@ def check_email_addr_and_send_email(
             if c2c_id not in c2c_ids_to_access_keys:
                 print(f"[{user_submitted_email_address}] C2C ID {c2c_id} is not active")
                 return
-
             access_key_to_send = c2c_ids_to_access_keys[c2c_id]
             if len(access_key_to_send) == 0:
                 print(
                     f"[{user_submitted_email_address}] C2C ID {c2c_id} is active, but doesn't have an access key for this experiment"
                 )
                 return
-
             emails.send_mail(
                 record["start_email"],
                 access_key_to_send,
@@ -166,7 +166,7 @@ def index():
 
         if hashed_id not in access_keys_to_c2c_ids:
             print(
-                f"[{hashed_id}] key not found in the C2Cv3 report- if this key is a legitimate hashed ID, then the user has withdrawn from the C2C study."
+                f"[{hashed_id}] key not found in the C2Cv3 report- if this key is a legitimate hashed ID, then the user has likely withdrawn from the C2C study."
             )
             return render_template("index.html", error_message=BUBBLE_MESSAGES["bad_key"])
 
@@ -287,31 +287,25 @@ def index():
     return render_template("index.html")
 
 
-@flask_app.route("/intro", methods=["GET"])
-def intro():
-    # Endpoint if user is a new survey participant
-    if "key" in request.args and len(request.args["key"]) > 0:
-        hashed_id = sanitize_key(request.args["key"])
-    # Debug: returns "hello intro!"
-    return render_template("intro.html", key=hashed_id)
-
-
 @flask_app.route("/check", methods=["GET", "POST"])
 def check():
+    """Originally used to check if a user input their access key or their C2C email address.
+    No longer needed because functionality related to the email address has been removed from the requirements.
+    """
     # "GET" request is needed so users can be redirected properly instead of seeing a "request not allowed" error
     # Endpoint that receives data from a user that manually input their key (hashed ID) to an HTML form on "/"
     # Redirect to "/" with that key to check
     if "key" in request.form and len(request.form["key"]) > 0:
         user_provided_key = request.form["key"].strip()
-        if mindlib.is_valid_email_address(user_provided_key):
-            check_email_addr_and_send_email(
-                user_provided_key,
-                flask_app.config["MAIL_SMTP_SERVER_ADDR"],
-                flask_app.config["MAIL_C2C_NOREPLY_ADDR"],
-                flask_app.config["MAIL_C2C_NOREPLY_DISPLAY_NAME"],
-                flask_app.config["MAIL_C2C_NOREPLY_PASS"],
-            )
-            return redirect(url_for("index", sent_email="1"), code=301)
+        # if mindlib.is_valid_email_address(user_provided_key):
+        #     check_email_addr_and_send_email(
+        #         user_provided_key,
+        #         flask_app.config["MAIL_SMTP_SERVER_ADDR"],
+        #         flask_app.config["MAIL_C2C_NOREPLY_ADDR"],
+        #         flask_app.config["MAIL_C2C_NOREPLY_DISPLAY_NAME"],
+        #         flask_app.config["MAIL_C2C_NOREPLY_PASS"],
+        #     )
+        #     return redirect(url_for("index", sent_email="1"), code=301)
 
         # Not a valid email, so try interpreting this as a literal access key
         # Don't have to do any intensive sanitizing or checking here; index() will do that
@@ -319,6 +313,15 @@ def check():
 
     # Don't allow users to visit this endpoint directly
     return redirect(url_for("index"), code=301)
+
+
+@flask_app.route("/intro", methods=["GET"])
+def intro():
+    # Endpoint if user is a new survey participant
+    if "key" in request.args and len(request.args["key"]) > 0:
+        hashed_id = sanitize_key(request.args["key"])
+    # Debug: returns "hello intro!"
+    return render_template("intro.html", key=hashed_id)
 
 
 @flask_app.route("/videos", methods=["GET"])

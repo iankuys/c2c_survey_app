@@ -1,3 +1,5 @@
+# UNUSED IN THIS APP - but kept for reference!
+
 import smtplib
 from email.headerregistry import Address
 from email.message import EmailMessage
