@@ -90,6 +90,22 @@ class IntroPageIn(BaseModel):
 #     vidB_url: str
 
 
+def debug_print_video_data_in(key: str, v: VideoPageIn) -> None:
+    print(f"User '{key}' ({v.user_agent}) finished a survey page")
+    print(
+        f"\tSelected video with ID '{v.selected_vid_id}' @ pos {v.selected_vid_position} (screen {v.screen})"
+    )
+    print(f"\tPage duration: from {v.screen_time_start} to {v.screen_time_end}")
+    print(f"\tVideo A (left):")
+    print(f"\t\tWatched from {v.vidA_playback_time_start} - {v.vidA_playback_time_end}")
+    print(f"\t\t{v.vidA_watch_count} play(s)")
+    print(f"\t\tLogs: {v.vidA_logs}")
+    print(f"\tVideo B (right):")
+    print(f"\t\tWatched from {v.vidB_playback_time_start} - {v.vidB_playback_time_end}")
+    print(f"\t\t{v.vidB_watch_count} play(s)")
+    print(f"\t\tLogs: {v.vidB_logs}")
+
+
 @app.post(f"/{URL_PREFIX}/video_selected")
 async def get_video_choice(video_page_data: VideoPageIn, key: str | None = None) -> None:
     if key:
@@ -99,25 +115,6 @@ async def get_video_choice(video_page_data: VideoPageIn, key: str | None = None)
         ):
             # Remove bounding single- or double-quotes from the selected video ID string
             video_page_data.selected_vid_id = video_page_data.selected_vid_id[1:-1]
-        # print(f"User '{key}' ({video_page_data.user_agent}) finished a survey page")
-        # print(
-        #     f"\tSelected video with ID '{video_page_data.selected_vid_id}' @ pos {video_page_data.selected_vid_position} (screen {video_page_data.screen})"
-        # )
-        # print(
-        #     f"\tPage duration: from {video_page_data.screen_time_start} to {video_page_data.screen_time_end}"
-        # )
-        # print(f"\tVideo A:")
-        # print(
-        #     f"\t\tWatched from {video_page_data.vidA_playback_time_start} - {video_page_data.vidA_playback_time_end}"
-        # )
-        # print(f"\t\t{video_page_data.vidA_watch_count} play(s)")
-        # print(f"\t\tLogs: {video_page_data.vidA_logs}")
-        # print(f"\tVideo B:")
-        # print(
-        #     f"\t\tWatched from {video_page_data.vidB_playback_time_start} - {video_page_data.vidB_playback_time_end}"
-        # )
-        # print(f"\t\t{video_page_data.vidB_watch_count} play(s)")
-        # print(f"\t\tLogs: {video_page_data.vidB_logs}")
 
         # TODO: create records for event "start_arm_1" (might handle this in Flask, not here)
         # TODO: handle separate API calls for these REDCap vars in "start_arm_1":
@@ -145,8 +142,12 @@ async def get_video_choice(video_page_data: VideoPageIn, key: str | None = None)
             "screen_tm_end": video_page_data.screen_time_end,
             "video_complete": "2",
         }
-        # record_as_str = json.dumps(redcap_video_page_record)
-        # print(record_as_str)
+
+        # debug_print_video_data_in(key, video_page_data)
+        # from json import dumps
+        # json_sent_to_redcap = dumps(redcap_video_page_record)
+        # print(json_sent_to_redcap)
+
         import_result = redcap_helpers.import_record(
             secrets["C2C_DCV_API_TOKEN"], secrets["REDCAP_API_URL"], [redcap_video_page_record]
         )
