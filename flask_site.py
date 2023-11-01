@@ -1,14 +1,15 @@
 import json
 import random
 import urllib.parse
+from pathlib import Path
 
-from flask import Flask, make_response, redirect, render_template, request, url_for
+from flask import Flask, redirect, render_template, request, url_for
 
-import emails
+# import emails
 import mindlib
 import redcap_helpers
 
-FLASK_APP_PATH = "/c2c-retention-dce/survey"
+FLASK_APP_URL_PATH = "/c2c-retention-dce/survey"
 secrets = mindlib.json_to_dict("secrets.json")
 
 # The REDCap variable in this experiment's REDCap project that contains unique hashed C2C IDs
@@ -38,8 +39,10 @@ MAX_VIDEOS = 2 * MAX_SCREENS
 
 VIDEOS = mindlib.json_to_dict("./content/videos.json")
 UNDEFINED_VID_ID_PLACEHOLDER = "UNDEFINED"
+
 SUSPICIOUS_CHARS = [";", ":", "&", '"', "'", "`", ">", "<", "{", "}", "|", ".", "%"]
 
+PATH_TO_THIS_FOLDER = Path(__file__).resolve().parent
 
 flask_app = Flask(__name__)
 # flask_app.config["APPLICATION_ROOT"] = URL_PREFIX
@@ -273,7 +276,7 @@ def index():
         # Needs to be served in a path because the JS script has limited scope to where it can place the cookie
         if not already_started_survey:
             # Fresh start: user has no REDCap data
-            resp.set_cookie(key="completed_screen", value="0", path=FLASK_APP_PATH)
+            resp.set_cookie(key="completed_screen", value="0", path=FLASK_APP_URL_PATH)
         elif "completed_screen" not in request.cookies:
             # User started the survey (they have REDCap data) and they cleared their cookies
             # Allows users to resume taking the survey
@@ -281,7 +284,7 @@ def index():
             resp.set_cookie(
                 key="completed_screen",
                 value=most_recent_completed_screen_from_redcap,
-                path=FLASK_APP_PATH,
+                path=FLASK_APP_URL_PATH,
             )
         return resp
     return render_template("index.html")
@@ -477,32 +480,33 @@ def outro():
             import_result = redcap_helpers.import_record(
                 secrets["C2C_DCV_API_TOKEN"], secrets["REDCAP_API_URL"], [redcap_outro_page_record]
             )
+            print(f"[{hashed_id}] uploaded {import_result} record(s) - finished survey!")
             return redirect(url_for("thankyou"), code=301)
 
-            # # q1_response = request.form.get("q1")
-            # # q2_response = request.form.get("q2")
-            # # q3_response = request.form.get("q3")
-            # # print(f"[{hashed_id}] outro responses: {q1_response}, {q2_response}, {q3_response}")
+            # q1_response = request.form.get("q1")
+            # q2_response = request.form.get("q2")
+            # q3_response = request.form.get("q3")
+            # print(f"[{hashed_id}] outro responses: {q1_response}, {q2_response}, {q3_response}")
 
-            # # # check if all questions were answered. if yes, import and head to thankyou screen
-            # # if len(q1_response) > 0 and len(q2_response) > 0 and len(q3_response) > 0:
-            # #     outro_data = [
-            # #         {
-            # #             HASHED_ID_EXPERIMENT_REDCAP_VAR: hashed_id,
-            # #             "redcap_event_name": "outroscreen_arm_1",
-            # #             "outro_q1": q1_response,
-            # #             "outro_q2": q2_response,
-            # #             "outro_q3": q3_response,
-            # #             "outro_complete": 2,
-            # #         }
-            # #     ]
-            # #     import_result = redcap_helpers.import_record(
-            # #         flask_app.config["C2C_DCV_API_TOKEN"],
-            # #         flask_app.config["REDCAP_API_URL"],
-            # #         outro_data,
-            # #     )
-            # #     print(f"[{hashed_id}] Uploaded {import_result} outro record(s) to REDCap")
-            # #     return redirect(url_for("thankyou"), code=301)
+            # # check if all questions were answered. if yes, import and head to thankyou screen
+            # if len(q1_response) > 0 and len(q2_response) > 0 and len(q3_response) > 0:
+            #     outro_data = [
+            #         {
+            #             HASHED_ID_EXPERIMENT_REDCAP_VAR: hashed_id,
+            #             "redcap_event_name": "outroscreen_arm_1",
+            #             "outro_q1": q1_response,
+            #             "outro_q2": q2_response,
+            #             "outro_q3": q3_response,
+            #             "outro_complete": 2,
+            #         }
+            #     ]
+            #     import_result = redcap_helpers.import_record(
+            #         flask_app.config["C2C_DCV_API_TOKEN"],
+            #         flask_app.config["REDCAP_API_URL"],
+            #         outro_data,
+            #     )
+            #     print(f"[{hashed_id}] Uploaded {import_result} outro record(s) to REDCap")
+            #     return redirect(url_for("thankyou"), code=301)
             # else:
             #     # if not all answered, reload outro page with error message
             #     return redirect(
@@ -513,29 +517,19 @@ def outro():
             #         ),
             #         code=301,
             #     )
-        else:  # request.method == GET
-            # bubble error message if outro was not completed
-            # if "error_code" in request.args and len(request.args["error_code"]) > 0:
-            #     error_code = request.args["error_code"]
-            #     if error_code not in BUBBLE_MESSAGES:
-            #         error_code = "unknown"
-            #     return render_template(
-            #         "outro.html", key=hashed_id, error_message=BUBBLE_MESSAGES[error_code]
-            #     )
-            # return render_template("outro.html", key=hashed_id)  # initial visit render
+        else:
+            survey_questions_path = Path(PATH_TO_THIS_FOLDER, "content", "survey_questions.txt")
+            survey_choices_path = Path(PATH_TO_THIS_FOLDER, "content", "survey_choices.txt")
+            check_choices_path = Path(PATH_TO_THIS_FOLDER, "content", "check_choice.txt")
 
-            survey_path = "static/survey.txt"
-            survey_choices_path = "static/survey_choice.txt"
-            check_choices_path = "static/check_choice.txt"
+            with open(survey_questions_path, "r") as survey_questions_infile:
+                questions = [line.strip() for line in survey_questions_infile.readlines()]
 
-            with open(survey_path, "r") as file:
-                questions = [line.strip() for line in file.readlines()]
+            with open(survey_choices_path, "r") as survey_choices_infile:
+                choices = [line.strip() for line in survey_choices_infile.readlines()]
 
-            with open(survey_choices_path, "r") as file:
-                choices = [line.strip() for line in file.readlines()]
-
-            with open(check_choices_path, "r") as file:
-                check_choices = [line.strip() for line in file.readlines()]
+            with open(check_choices_path, "r") as check_choices_infile:
+                check_choices = [line.strip() for line in check_choices_infile.readlines()]
 
             return render_template(
                 "outro.html", questions=questions, choices=choices, check_choices=check_choices
