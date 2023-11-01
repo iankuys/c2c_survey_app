@@ -1,0 +1,60 @@
+{% extends '_base.html' %}
+{% block content %}
+
+<div class = "text-center">
+    <!--Check key-->
+    {% if key %}<p class="pb-1">[DEBUG] Your access key is: <b><code>{{ key }}</code></b> [DEBUG]</p> {%endif%}    
+
+    <!--Error Bubble message-->
+    {% if error_message %}
+    <div class="alert alert-warning d-flex justify-content-between">
+        {{ error_message }}<a href="{{ url_for('outro', key = key) }}"
+            style="text-decoration: none; color: #604f03;font-weight: bolder;">×</a>
+    </div>
+    {% endif %}
+
+    <!--Questions, Responses, and Submit-->
+    <form action=" {{ url_for('outro', key=key) }}" method="post">
+        <div class="container">
+            <!--Question 1-->
+           <p><label for "Question 1"> Question 1 </label></p>
+           <div class="input-group input-group-lg">
+               <textarea class="form-control" style="height: 10em; resize: none; text-align: center;" id="q1" name="q1" placeholder="Your response for Question 1"></textarea>
+           </div>
+           <br>
+            <!--Question 2-->
+           <p><label for "Question 2"> Question 2 </label></p>
+           <div class="input-group input-group-lg">
+               <textarea class="form-control" style="height: 10em; resize: none; text-align: center;" id="q2" name="q2" placeholder="Your response for Question 2"></textarea>
+           </div>
+           <br>
+            <!--Question 3-->
+           <p><label for "Question 3"> Question 3 </label></p>
+           <div class="input-group input-group-lg">
+               <textarea class="form-control" style="height: 10em; resize: none; text-align: center;" id="q3" name="q3" placeholder="Your response for Question 3"></textarea>
+           </div>
+
+           <!--Submit button-->
+            <div class="py-3 d-grid gap-2 col-6 mx-auto">
+                <a href="{{ url_for('index', key=key, screen=0, msg='survey_completed') }}">
+                    <input type="submit" class="btn btn-primary btn-lg center" style="height:50px; width:550px"/>
+                </a>
+                <button hidden type="button" class="btn btn-primary btn-lg disabled" id="loading_button">
+                    <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                    Loading....
+                </button>
+            </div>
+       </div>
+    </form>
+</div>
+
+<!--Button functionality-->
+<script type="text/javascript">
+    var submit_button = document.getElementById('submit_button');
+    var loading_button = document.getElementById('loading_button');
+    submit_button.onclick = function disable_submit() {
+        submit_button.setAttribute('hidden', '');
+        loading_button.removeAttribute('hidden', '');
+    }
+</script>
+{% endblock %}

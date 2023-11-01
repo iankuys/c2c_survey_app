@@ -416,7 +416,6 @@ def videos():
                 )
                 if int(most_recent_completed_screen_from_redcap) == MAX_SCREENS:
                     # If they completed the final screen, serve the completion message
-                    # return redirect(url_for("index", msg="survey_completed"), code=301)
                     return redirect(url_for("outro", key=hashed_id), code=301)
                 return render_template("videos.html")
 
@@ -536,7 +535,7 @@ def outro():
                 check_choices = [line.strip() for line in file.readlines()]
 
             return render_template(
-                "survey.html", questions=questions, choices=choices, check_choices=check_choices
+                "outro.html", questions=questions, choices=choices, check_choices=check_choices
             )
 
     return redirect(url_for("index", msg="missing_key"), code=301)
