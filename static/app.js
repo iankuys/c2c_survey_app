@@ -65,7 +65,7 @@ function parseVimeoResponse(data, attr) {
 
 function getVideoPositionFromHTML(videoDivID) {
     // Reads the video survey page's HTML content to obtain the video's position
-    // as an integer.
+    // as an integer. (1 = left, 2 = right)
     // Also sets the inner text of that element to be blank so it can be replaced
     // with a Vimeo player element.
     // Returns the integer position on success, or 0 on failure (if the video HTML
@@ -372,6 +372,14 @@ async function uploadVideoSelection() {
         console.log(`User selected this video: ${selectedVideo.getLog()}`);
 
         videoPageEndTime = getUTCTimestampNow(includeMilliseconds = false);
+
+        if (thisScreenFromURL <= mostCompletedScreen) {
+            // Protects survey flow from users clicking the "Back" button and moving to a previous screen
+            // Ignore the data collected during this screen and direct them to the screen they should be at
+            // Users must still watch the 2 videos on this screen to proceed to the next screen
+            window.location.href = `${server}/survey/videos?key=${access_key}&screen=${mostCompletedScreen + 1}`;
+            return;
+        }
 
         // Add 1 to the most completed screen to get THIS screen
         let thisCompletedScreen = mostCompletedScreen + 1;
