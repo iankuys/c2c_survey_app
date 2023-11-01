@@ -120,14 +120,14 @@ def check_email_addr_and_send_email(
                     f"[{user_submitted_email_address}] C2C ID {c2c_id} is active, but doesn't have an access key for this experiment"
                 )
                 return
-            emails.send_mail(
-                record["start_email"],
-                access_key_to_send,
-                our_email_server_address,
-                our_from_email_address,
-                our_from_email_display_name,
-                our_from_email_password,
-            )
+            # emails.send_mail(
+            #     record["start_email"],
+            #     access_key_to_send,
+            #     our_email_server_address,
+            #     our_from_email_address,
+            #     our_from_email_display_name,
+            #     our_from_email_password,
+            # )
             return
     print(f"[{user_submitted_email_address}] not found in the list of active C2C participants")
     return
