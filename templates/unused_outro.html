@@ -3,7 +3,8 @@
 
 <div class = "text-center">
     <!--Check key-->
-    {% if key %}<p class="pb-1">[DEBUG] Your access key is: <b><code>{{ key }}</code></b> [DEBUG]</p> {%endif%}    
+    {% if key %}{# <p class="pb-1">[DEBUG] Your access key is: <b><code>{{ key }}</code></b> [DEBUG]</p> #}
+    {%endif%}
 
     <!--Error Bubble message-->
     {% if error_message %}
