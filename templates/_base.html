@@ -26,7 +26,9 @@
     <script src="{{ url_for('static', filename='bootstrap.bundle.min.js') }}"></script>
     <footer style="text-align: center;">
         <div class="container-fluid">
-            <hr>
+            <hr>{% if request.endpoint == "videos" %}
+            <p>Please email <a href="mailto: mwitbrac@uci.edu">mwitbrac@uci.edu</a> if you require assistance.</p>
+            {% endif %}
             <p><i>© 2023 UCI MIND</i></p>
             <a href="https://mind.uci.edu/" target="_blank"><img src="{{ url_for('static', filename='UCI16_MIND_Full_ctr_blue copy.png') }}" alt="UCI MIND logo" width="278" height="58"><br />
             <p class="mb-5">https://mind.uci.edu/</p></a>
