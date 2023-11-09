@@ -156,8 +156,8 @@ def index():
             return render_template("index.html", error_message=BUBBLE_MESSAGES["unknown"])
         return render_template("index.html", info_message=BUBBLE_MESSAGES[message_code])
 
-    if "sent_email" in request.args and len(request.args["sent_email"]) > 0:
-        return render_template("email_sent.html")
+    # if "sent_email" in request.args and len(request.args["sent_email"]) > 0:
+    #     return render_template("email_sent.html")
 
     if "key" in request.args and len(request.args["key"]) > 0:
         hashed_id = sanitize_key(request.args["key"])
@@ -183,6 +183,9 @@ def index():
         # print(survey_record)
 
         already_started_survey = len(existing_dcv_video_data) > 0
+        print(
+            f"[{hashed_id}] already started survey? {already_started_survey} (have {len(existing_dcv_video_data)} existing video instruments)"
+        )
         if already_started_survey:
             # The user has generated a set of videos already - they may have finished the survey already
             # Got video data but the user hasn't finished the survey yet - don't assign any more videos
@@ -259,15 +262,6 @@ def index():
                 code=301,
             )
 
-        # resp.set_cookie(key="v1_id", value=survey_videos[0])
-        # resp.set_cookie(key="v1_url", value=VIDEOS[survey_videos[0]])
-        # resp.set_cookie(key="v2_id", value=survey_videos[1])
-        # resp.set_cookie(key="v2_url", value=VIDEOS[survey_videos[1]])
-        # resp.set_cookie(key="v3_id", value=survey_videos[2])
-        # resp.set_cookie(key="v3_url", value=VIDEOS[survey_videos[2]])
-        # resp.set_cookie(key="v4_id", value=survey_videos[3])
-        # resp.set_cookie(key="v4_url", value=VIDEOS[survey_videos[3]])
-
         for i in range(len(survey_videos)):
             resp.set_cookie(key=f"v{i + 1}_id", value=survey_videos[i])
             resp.set_cookie(key=f"v{i + 1}_url", value=VIDEOS[survey_videos[i]])
@@ -277,14 +271,17 @@ def index():
         if not already_started_survey:
             # Fresh start: user has no REDCap data
             resp.set_cookie(key="completed_screen", value="0", path=FLASK_APP_URL_PATH)
+            print(f'[{hashed_id}] fresh start: set "completed_screen" to 0')
         elif "completed_screen" not in request.cookies:
             # User started the survey (they have REDCap data) and they cleared their cookies
             # Allows users to resume taking the survey
-            print(f"[{hashed_id}] cleared cookies but is resuming survey")
             resp.set_cookie(
                 key="completed_screen",
                 value=most_recent_completed_screen_from_redcap,
                 path=FLASK_APP_URL_PATH,
+            )
+            print(
+                f'[{hashed_id}] cleared cookies but is resuming survey - set "completed_screen" to {most_recent_completed_screen_from_redcap}'
             )
         return resp
     return render_template("index.html")
@@ -434,19 +431,17 @@ def videos():
             print(f"[{hashed_id}] Starting screen {scr} (videos {vid_a_pos} & {vid_b_pos})")
 
             if most_recent_completed_screen < MAX_SCREENS:
+                # Continue the video survey
                 return render_template(
                     "videos.html", screen=scr, vid_a_position=vid_a_pos, vid_b_position=vid_b_pos
                 )
             # elif SERVE_SCREEN_3:  # most_recent_completed_screen == 2
             #     return resp_screen3
-            elif most_recent_completed_screen == MAX_SCREENS:
-                return redirect(url_for("outro", key=hashed_id), code=301)
-
-            # TODO: temporary end of survey; maybe add a new text section for screen 4
-            return redirect(url_for("index", msg="survey_completed"), code=301)
+            # After the videos are completed, go to the outro questionnaire
+            return redirect(url_for("outro", key=hashed_id), code=301)
 
         else:
-            # No "screen" URL parameter
+            # No "screen" URL parameter or "completed_screen" cookie is missing
             return redirect(url_for("index", error_code="v02"), code=301)
     return redirect(url_for("index", error_code="missing_key"), code=301)
 
@@ -458,11 +453,12 @@ def outro():
     if "key" in request.args and len(request.args["key"]) > 0:
         hashed_id = sanitize_key(request.args["key"])
 
-        if not redcap_helpers.get_outro_completed(
+        if not redcap_helpers.user_completed_outro(
             secrets["C2C_DCV_API_TOKEN"], flask_app.config["REDCAP_API_URL"], hashed_id
         ):
-            # get user's responses from html
+            # if the user did NOT complete the outro, upload their responses from html
             if request.method == "POST":
+                # POST request = page form has been completed and data will be uploaded
                 print(request.form)
                 redcap_outro_page_record = {
                     "access_key": hashed_id,
@@ -488,8 +484,8 @@ def outro():
                 )
                 print(f"[{hashed_id}] uploaded {import_result} record(s) - finished survey!")
                 return redirect(url_for("thankyou"), code=301)
-
             else:
+                # GET request = visiting this page in the web browser
                 survey_questions_path = Path(
                     PATH_TO_THIS_FOLDER, "content", "survey_questions.txt"
                 )

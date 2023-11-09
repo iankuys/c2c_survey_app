@@ -221,7 +221,7 @@ def get_most_recent_screen(token: str, url: str, recordid: str, maxScreens: int)
     return str(most_recent_screen)
 
 
-def get_outro_completed(token: str, url: str, recordid: str) -> bool:
+def user_completed_outro(token: str, url: str, recordid: str) -> bool:
     """Makes a REDCap API call to check if a participant completed the final "outro" questionnaire.
     Returns True if they completed the questionnaire or False if not.
     """

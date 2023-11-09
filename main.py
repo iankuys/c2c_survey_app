@@ -116,16 +116,6 @@ async def get_video_choice(video_page_data: VideoPageIn, key: str | None = None)
             # Remove bounding single- or double-quotes from the selected video ID string
             video_page_data.selected_vid_id = video_page_data.selected_vid_id[1:-1]
 
-        # TODO: create records for event "start_arm_1" (might handle this in Flask, not here)
-        # TODO: handle separate API calls for these REDCap vars in "start_arm_1":
-        # - user_agent
-        #   - capture on survey start or continue to capture per-survey page?
-        # - survey_start_tm
-        #   - when user gets disclaimer page?
-        #   - when user starts screen 1?
-        # - survey_end_tm
-        #   - when screen 3 ends?
-        #   - when the bonus text questions are done?
         redcap_video_page_record = {
             "access_key": key,
             "redcap_event_name": f"screen{video_page_data.screen}_arm_1",
