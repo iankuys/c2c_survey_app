@@ -1,56 +1,45 @@
 {% extends '_base.html' %}
 {% block content %}
-<html>
 
-<head>
-    <meta charset="utf-8">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.3.1/dist/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
-    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.14.7/dist/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.3.1/dist/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
-</head>
-
-
-<body>
-    <h2 class="row justify-content-center"> Survey </h2>
-    <div>
-        <form class="col-lg-6 offset-lg-3 " method="post">
-            {% for question in questions %}
-            <div class="row justify-content-center form-group py-4" style="outline: 1px dotted rgba(0, 0, 0, 0.25)">
-                <label class="fw-bold" for="fname">{{question}}</label>
-                {% set name = "outro_q" + loop.index|string %}
-                {% if loop.index <= 9 %}
-                    <div class="row">
-                        {% for option in choices %}
-                            <div class="col text-center">
-                                {% set id = name + "_option" + loop.index|string %}
-                                <input class="form-check-input" type="radio" name="{{ name }}" id="{{ id }}" value="{{ loop.index }}" required>
-                                <label class="form-check-label" for="{{ id }}">
-                                    {{ option }}
-                                </label>
-                            </div>
-
-                    {% endfor %}
-                    </div>
-                {% else %}
-                    <div class = "row form-check">
-                        {% for option in check_choices %}
-                        <div class="col py-2">                    
-                            {% set id = "check" + loop.index|string %}
+<h2 class="row justify-content-center"> Survey </h2>
+<div>
+    <form class="col-lg-6 offset-lg-3 " method="post">
+        {% for question in questions %}
+        <div class="row justify-content-center form-group py-4" style="outline: 1px dotted rgba(0, 0, 0, 0.25)">
+            <label class="fw-bold" for="fname">{{question}}</label>
+            {% set name = "outro_q" + loop.index|string %}
+            {% if loop.index <= 9 %}
+                <div class="row">
+                    {% for option in choices %}
+                        <div class="col text-center">
+                            {% set id = name + "_option" + loop.index|string %}
                             <input class="form-check-input" type="radio" name="{{ name }}" id="{{ id }}" value="{{ loop.index }}" required>
                             <label class="form-check-label" for="{{ id }}">
                                 {{ option }}
                             </label>
                         </div>
-                        {% endfor %}
-                    </div>
-                    <button type="submit" name="send_it" class="btn btn-primary">Submit</button>
+
+                {% endfor %}
                 </div>
-                {% endif %} 
+            {% else %}
+                <div class = "row form-check">
+                    {% for option in check_choices %}
+                    <div class="col py-2">                    
+                        {% set id = "check" + loop.index|string %}
+                        <input class="form-check-input" type="radio" name="{{ name }}" id="{{ id }}" value="{{ loop.index }}" required>
+                        <label class="form-check-label" for="{{ id }}">
+                            {{ option }}
+                        </label>
+                    </div>
+                    {% endfor %}
+                </div>
             </div>
-            {% endfor %}
-        </form>
-    </div>
-</body>
-</html>
+            <div class="row justify-content-center">
+                <button type="submit" name="send_it" class="btn btn-primary">Submit</button>
+            </div>            
+            {% endif %} 
+        </div>
+        {% endfor %}
+    </form>
+</div>
 {% endblock %}
