@@ -219,3 +219,35 @@ def get_most_recent_screen(token: str, url: str, recordid: str, maxScreens: int)
                     most_recent_screen = this_screen
                     # print(f"[{recordid}] Updated most recent screen from REDCap: {most_recent_screen}")
     return str(most_recent_screen)
+
+def get_outro_completed(token: str, url: str, recordid: str) -> bool:
+    """Makes a REDCap API call for exporting a single report from a project.
+    Returns a list of dicts, each containing a single record's fields as specified in the report.
+    """
+    request_params = {
+        "token": token, 
+        'content': 'record',
+        'action': 'export',
+        "format": "json",
+        'type': 'flat',
+        'csvDelimiter': '',
+        'records[0]': recordid,
+        'fields[0]': 'outro_complete',
+        'forms[0]': 'outro',
+        'events[0]': 'outroscreen_arm_1',
+        'rawOrLabel': 'raw',
+        'rawOrLabelHeaders': 'raw',
+        'exportCheckboxLabel': 'false',
+        'exportSurveyFields': 'false',
+        'exportDataAccessGroups': 'false',
+        "returnFormat": "json",
+    }
+    r = requests.post(url, data=request_params)
+    # print('>>> HTTP Status: ' + str(r.status_code))
+    result = json.loads(r.text)
+    if type(result) == dict and "error" in result:
+        raise REDCapError(
+            f"REDCap API returned an error while exporting record '{recordid}':\n{result['error']}"
+        )
+    
+    return True if int(result[0]["outro_complete"]) >= 2 else False
