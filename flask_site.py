@@ -454,86 +454,57 @@ def videos():
 @flask_app.route("/outro", methods=["GET", "POST"])
 def outro():
     # error_code = "key" for redirect, error_message = BUBBLE_MESSAGES["key"] for render
+
     if "key" in request.args and len(request.args["key"]) > 0:
         hashed_id = sanitize_key(request.args["key"])
 
-        # get user's responses from html
-        if request.method == "POST":
-            print(request.form)
-            redcap_outro_page_record = {
-                "access_key": hashed_id,
-                "redcap_event_name": "outroscreen_arm_1",
-                "outro_q1": f"{request.form['outro_q1']}",
-                "outro_q2": f"{request.form['outro_q2']}",
-                "outro_q3": f"{request.form['outro_q3']}",
-                "outro_q4": f"{request.form['outro_q4']}",
-                "outro_q5": f"{request.form['outro_q5']}",
-                "outro_q6": f"{request.form['outro_q6']}",
-                "outro_q7": f"{request.form['outro_q7']}",
-                "outro_q8": f"{request.form['outro_q8']}",
-                "outro_q9": f"{request.form['outro_q9']}",
-                "outro_q10": f"{request.form['outro_q10']}",
-                "outro_complete": 2,
-            }
-            print(f"[{hashed_id}] outro responses: {redcap_outro_page_record}")
+        if not redcap_helpers.get_outro_completed(secrets["C2C_DCV_API_TOKEN"], flask_app.config["REDCAP_API_URL"], hashed_id):
+            # get user's responses from html
+            if request.method == "POST":
+                print(request.form)
+                redcap_outro_page_record = {
+                    "access_key": hashed_id,
+                    "redcap_event_name": "outroscreen_arm_1",
+                    "outro_q1": f"{request.form['outro_q1']}",
+                    "outro_q2": f"{request.form['outro_q2']}",
+                    "outro_q3": f"{request.form['outro_q3']}",
+                    "outro_q4": f"{request.form['outro_q4']}",
+                    "outro_q5": f"{request.form['outro_q5']}",
+                    "outro_q6": f"{request.form['outro_q6']}",
+                    "outro_q7": f"{request.form['outro_q7']}",
+                    "outro_q8": f"{request.form['outro_q8']}",
+                    "outro_q9": f"{request.form['outro_q9']}",
+                    "outro_q10": f"{request.form['outro_q10']}",
+                    "outro_complete": 2,
+                }
+                print(f"[{hashed_id}] outro responses: {redcap_outro_page_record}")
 
-            import_result = redcap_helpers.import_record(
-                secrets["C2C_DCV_API_TOKEN"], secrets["REDCAP_API_URL"], [redcap_outro_page_record]
-            )
-            print(f"[{hashed_id}] uploaded {import_result} record(s) - finished survey!")
-            return redirect(url_for("thankyou"), code=301)
+                import_result = redcap_helpers.import_record(
+                    secrets["C2C_DCV_API_TOKEN"], secrets["REDCAP_API_URL"], [redcap_outro_page_record]
+                )
+                print(f"[{hashed_id}] uploaded {import_result} record(s) - finished survey!")
+                return redirect(url_for("thankyou"), code=301)
 
-            # q1_response = request.form.get("q1")
-            # q2_response = request.form.get("q2")
-            # q3_response = request.form.get("q3")
-            # print(f"[{hashed_id}] outro responses: {q1_response}, {q2_response}, {q3_response}")
+            else:
+                survey_questions_path = Path(PATH_TO_THIS_FOLDER, "content", "survey_questions.txt")
+                survey_choices_path = Path(PATH_TO_THIS_FOLDER, "content", "survey_choices.txt")
+                check_choices_path = Path(PATH_TO_THIS_FOLDER, "content", "check_choice.txt")
 
-            # # check if all questions were answered. if yes, import and head to thankyou screen
-            # if len(q1_response) > 0 and len(q2_response) > 0 and len(q3_response) > 0:
-            #     outro_data = [
-            #         {
-            #             HASHED_ID_EXPERIMENT_REDCAP_VAR: hashed_id,
-            #             "redcap_event_name": "outroscreen_arm_1",
-            #             "outro_q1": q1_response,
-            #             "outro_q2": q2_response,
-            #             "outro_q3": q3_response,
-            #             "outro_complete": 2,
-            #         }
-            #     ]
-            #     import_result = redcap_helpers.import_record(
-            #         flask_app.config["C2C_DCV_API_TOKEN"],
-            #         flask_app.config["REDCAP_API_URL"],
-            #         outro_data,
-            #     )
-            #     print(f"[{hashed_id}] Uploaded {import_result} outro record(s) to REDCap")
-            #     return redirect(url_for("thankyou"), code=301)
-            # else:
-            #     # if not all answered, reload outro page with error message
-            #     return redirect(
-            #         url_for(
-            #             "outro",
-            #             key=hashed_id,
-            #             error_code="incomplete_outro",
-            #         ),
-            #         code=301,
-            #     )
+                with open(survey_questions_path, "r") as survey_questions_infile:
+                    questions = [line.strip() for line in survey_questions_infile.readlines()]
+
+                with open(survey_choices_path, "r") as survey_choices_infile:
+                    choices = [line.strip() for line in survey_choices_infile.readlines()]
+
+                with open(check_choices_path, "r") as check_choices_infile:
+                    check_choices = [line.strip() for line in check_choices_infile.readlines()]
+
+                return render_template(
+                    "outro.html", questions=questions, choices=choices, check_choices=check_choices
+                )
         else:
-            survey_questions_path = Path(PATH_TO_THIS_FOLDER, "content", "survey_questions.txt")
-            survey_choices_path = Path(PATH_TO_THIS_FOLDER, "content", "survey_choices.txt")
-            check_choices_path = Path(PATH_TO_THIS_FOLDER, "content", "check_choice.txt")
+            return redirect(url_for("thankyou"))
 
-            with open(survey_questions_path, "r") as survey_questions_infile:
-                questions = [line.strip() for line in survey_questions_infile.readlines()]
-
-            with open(survey_choices_path, "r") as survey_choices_infile:
-                choices = [line.strip() for line in survey_choices_infile.readlines()]
-
-            with open(check_choices_path, "r") as check_choices_infile:
-                check_choices = [line.strip() for line in check_choices_infile.readlines()]
-
-            return render_template(
-                "outro.html", questions=questions, choices=choices, check_choices=check_choices
-            )
 
     return redirect(url_for("index", msg="missing_key"), code=301)
 
