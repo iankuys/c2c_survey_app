@@ -34,7 +34,7 @@ BUBBLE_MESSAGES = {
 
 # List of screen numbers that this survey has
 # ALLOWED_SCREENS = [1, 2, 3, 4, 5, 6, 7]
-MAX_SCREENS = 2  # Change to 7 when in production
+MAX_SCREENS = 7  # PROD VALUE: 7
 MAX_VIDEOS = 2 * MAX_SCREENS
 
 VIDEOS = mindlib.json_to_dict("./content/videos.json")
@@ -196,7 +196,7 @@ def index():
                     and existing_vid_a_id != UNDEFINED_VID_ID_PLACEHOLDER
                     and len(existing_vid_b_id) > 0
                     and existing_vid_b_id != UNDEFINED_VID_ID_PLACEHOLDER
-                    and len(survey_videos) < (MAX_VIDEOS)  # no longer a set number like 14
+                    and len(survey_videos) < (MAX_VIDEOS)
                 ):
                     survey_videos.append(r["video_a"])
                     survey_videos.append(r["video_b"])
@@ -458,7 +458,9 @@ def outro():
     if "key" in request.args and len(request.args["key"]) > 0:
         hashed_id = sanitize_key(request.args["key"])
 
-        if not redcap_helpers.get_outro_completed(secrets["C2C_DCV_API_TOKEN"], flask_app.config["REDCAP_API_URL"], hashed_id):
+        if not redcap_helpers.get_outro_completed(
+            secrets["C2C_DCV_API_TOKEN"], flask_app.config["REDCAP_API_URL"], hashed_id
+        ):
             # get user's responses from html
             if request.method == "POST":
                 print(request.form)
@@ -480,13 +482,17 @@ def outro():
                 print(f"[{hashed_id}] outro responses: {redcap_outro_page_record}")
 
                 import_result = redcap_helpers.import_record(
-                    secrets["C2C_DCV_API_TOKEN"], secrets["REDCAP_API_URL"], [redcap_outro_page_record]
+                    secrets["C2C_DCV_API_TOKEN"],
+                    secrets["REDCAP_API_URL"],
+                    [redcap_outro_page_record],
                 )
                 print(f"[{hashed_id}] uploaded {import_result} record(s) - finished survey!")
                 return redirect(url_for("thankyou"), code=301)
 
             else:
-                survey_questions_path = Path(PATH_TO_THIS_FOLDER, "content", "survey_questions.txt")
+                survey_questions_path = Path(
+                    PATH_TO_THIS_FOLDER, "content", "survey_questions.txt"
+                )
                 survey_choices_path = Path(PATH_TO_THIS_FOLDER, "content", "survey_choices.txt")
                 check_choices_path = Path(PATH_TO_THIS_FOLDER, "content", "check_choice.txt")
 
@@ -503,8 +509,8 @@ def outro():
                     "outro.html", questions=questions, choices=choices, check_choices=check_choices
                 )
         else:
-            return redirect(url_for("thankyou"))
-
+            print(f"[{hashed_id}] Already completed outro survey")
+            return redirect(url_for("thankyou"), code=301)
 
     return redirect(url_for("index", msg="missing_key"), code=301)
 

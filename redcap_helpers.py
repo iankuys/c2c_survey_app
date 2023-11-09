@@ -220,26 +220,27 @@ def get_most_recent_screen(token: str, url: str, recordid: str, maxScreens: int)
                     # print(f"[{recordid}] Updated most recent screen from REDCap: {most_recent_screen}")
     return str(most_recent_screen)
 
+
 def get_outro_completed(token: str, url: str, recordid: str) -> bool:
-    """Makes a REDCap API call for exporting a single report from a project.
-    Returns a list of dicts, each containing a single record's fields as specified in the report.
+    """Makes a REDCap API call to check if a participant completed the final "outro" questionnaire.
+    Returns True if they completed the questionnaire or False if not.
     """
     request_params = {
-        "token": token, 
-        'content': 'record',
-        'action': 'export',
+        "token": token,
+        "content": "record",
+        "action": "export",
         "format": "json",
-        'type': 'flat',
-        'csvDelimiter': '',
-        'records[0]': recordid,
-        'fields[0]': 'outro_complete',
-        'forms[0]': 'outro',
-        'events[0]': 'outroscreen_arm_1',
-        'rawOrLabel': 'raw',
-        'rawOrLabelHeaders': 'raw',
-        'exportCheckboxLabel': 'false',
-        'exportSurveyFields': 'false',
-        'exportDataAccessGroups': 'false',
+        "type": "flat",
+        "csvDelimiter": "",
+        "records[0]": recordid,
+        "fields[0]": "outro_complete",
+        "forms[0]": "outro",
+        "events[0]": "outroscreen_arm_1",
+        "rawOrLabel": "raw",
+        "rawOrLabelHeaders": "raw",
+        "exportCheckboxLabel": "false",
+        "exportSurveyFields": "false",
+        "exportDataAccessGroups": "false",
         "returnFormat": "json",
     }
     r = requests.post(url, data=request_params)
@@ -247,7 +248,7 @@ def get_outro_completed(token: str, url: str, recordid: str) -> bool:
     result = json.loads(r.text)
     if type(result) == dict and "error" in result:
         raise REDCapError(
-            f"REDCap API returned an error while exporting record '{recordid}':\n{result['error']}"
+            f"REDCap API returned an error while checking '{recordid}' for outro completion:\n{result['error']}"
         )
-    
-    return True if int(result[0]["outro_complete"]) >= 2 else False
+
+    return result[0]["outro_complete"] == "2"
