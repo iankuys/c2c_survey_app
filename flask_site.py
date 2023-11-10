@@ -459,9 +459,9 @@ def outro():
             # if the user did NOT complete the outro, upload their responses from html
             if request.method == "POST":
                 # POST request = page form has been completed and data will be uploaded
-                print(request.form)
+                # print(request.form)
                 redcap_outro_page_record = {
-                    "access_key": hashed_id,
+                    HASHED_ID_EXPERIMENT_REDCAP_VAR: hashed_id,
                     "redcap_event_name": "outroscreen_arm_1",
                     "outro_q1": f"{request.form['outro_q1']}",
                     "outro_q2": f"{request.form['outro_q2']}",
@@ -475,14 +475,27 @@ def outro():
                     "outro_q10": f"{request.form['outro_q10']}",
                     "outro_complete": 2,
                 }
-                print(f"[{hashed_id}] outro responses: {redcap_outro_page_record}")
-
-                import_result = redcap_helpers.import_record(
+                # print(f"[{hashed_id}] outro responses: {redcap_outro_page_record}")
+                redcap_helpers.import_record(
                     secrets["C2C_DCV_API_TOKEN"],
                     secrets["REDCAP_API_URL"],
                     [redcap_outro_page_record],
                 )
-                print(f"[{hashed_id}] uploaded {import_result} record(s) - finished survey!")
+
+                end_time = mindlib.timestamp_now()
+                outro_basic_information_record = {
+                    HASHED_ID_EXPERIMENT_REDCAP_VAR: hashed_id,
+                    "redcap_event_name": "start_arm_1",
+                    "survey_tm_end": end_time,
+                    "basic_information_complete": "2",
+                }
+                redcap_helpers.import_record(
+                    secrets["C2C_DCV_API_TOKEN"],
+                    secrets["REDCAP_API_URL"],
+                    [outro_basic_information_record],
+                )
+                print(f"[{hashed_id}] finished survey at {end_time}")
+
                 return redirect(url_for("thankyou"), code=301)
             else:
                 # GET request = visiting this page in the web browser
