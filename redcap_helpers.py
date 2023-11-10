@@ -251,4 +251,6 @@ def user_completed_outro(token: str, url: str, recordid: str) -> bool:
             f"REDCap API returned an error while checking '{recordid}' for outro completion:\n{result['error']}"
         )
 
-    return result[0]["outro_complete"] == "2"
+    # print(result)
+
+    return len(result) > 0 and result[0]["outro_complete"] == "2"
