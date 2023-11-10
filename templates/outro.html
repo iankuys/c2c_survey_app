@@ -1,8 +1,9 @@
 {% extends '_base.html' %}
 {% block content %}
 
-<h2 class="row justify-content-center"> Survey </h2>
-<div>
+<div class="text-center">
+    <h2 class="row justify-content-center">Final survey</h2>
+    <p>Please complete the following questionnaire to enter for a chance to win a $100 Amazon gift card.</p>
     <form class="col-lg-6 offset-lg-3 " method="post">
         {% for question in questions %}
         <div class="row justify-content-center form-group py-4" style="outline: 1px dotted rgba(0, 0, 0, 0.25)">
