@@ -12,7 +12,8 @@ import redcap_helpers
 
 FLASK_APP_URL_PATH = "/c2c-retention-dce/survey"
 
-# The REDCap variable in this experiment's REDCap project that contains unique hashed C2C IDs
+# The REDCap variable in this experiment's REDCap project that contains
+# participants' access keys: C2C IDs that have been salted + hashed from an external Python script (c2c-id-hash)
 HASHED_ID_EXPERIMENT_REDCAP_VAR = "access_key"
 
 # The REDCap variable in the C2Cv3 REDCap project that contains the same hashed IDs
@@ -73,9 +74,11 @@ def sanitize_key(key_from_html_string: str) -> str:
 
 
 def create_id_mapping(id_file: Path = ID_FILE, reversed: bool = False) -> dict[str:str]:
-    """Returns a dict mapping hashed C2C IDs to their corresponding original C2C IDs.
-    If reversed = True, original C2C IDs will be mapped to their hashed IDs.
+    """Returns a dict mapping access keys (hashed C2C IDs) to their corresponding original C2C IDs.
+    If reversed = True, original C2C IDs will be mapped to their access keys.
+    IDs and access keys are stored in a local CSV file (`id_file`).
     """
+    # Old behavior to get C2Cv3 IDs and access keys from the C2Cv3 REDCap project:
     # redcap_helpers.export_redcap_report(
     #     flask_app.config["C2CV3_API_TOKEN"],
     #     flask_app.config["REDCAP_API_URL"],
@@ -109,6 +112,12 @@ def create_id_mapping(id_file: Path = ID_FILE, reversed: bool = False) -> dict[s
     return mapping
 
 
+ACCESS_KEYS_TO_C2C_IDS = create_id_mapping()
+C2C_IDS_TO_ACCESS_KEYS = create_id_mapping(reversed=True)
+print(f"Loaded {len(ACCESS_KEYS_TO_C2C_IDS)} access keys from {ID_FILE}")
+print(f"Loaded {len(C2C_IDS_TO_ACCESS_KEYS)} C2C IDs from {ID_FILE}")
+
+
 def check_email_addr_and_send_email(
     user_submitted_email_address: str,
     our_email_server_address: str,
@@ -133,11 +142,10 @@ def check_email_addr_and_send_email(
         ):
             # User's email matches one found in the report
             c2c_id = record["record_id"]
-            c2c_ids_to_access_keys = create_id_mapping(reversed=True)
-            if c2c_id not in c2c_ids_to_access_keys:
+            if c2c_id not in C2C_IDS_TO_ACCESS_KEYS:
                 print(f"[{user_submitted_email_address}] C2C ID {c2c_id} is not active")
                 return
-            access_key_to_send = c2c_ids_to_access_keys[c2c_id]
+            access_key_to_send = C2C_IDS_TO_ACCESS_KEYS[c2c_id]
             if len(access_key_to_send) == 0:
                 print(
                     f"[{user_submitted_email_address}] C2C ID {c2c_id} is active, but doesn't have an access key for this experiment"
@@ -188,12 +196,8 @@ def index():
             print("This key failed sanitization:", request.args["key"])
             return render_template("index.html", error_message=BUBBLE_MESSAGES["bad_key"])
 
-        access_keys_to_c2c_ids = create_id_mapping()
-
-        if hashed_id not in access_keys_to_c2c_ids:
-            print(
-                f"[{hashed_id}] key not found in the C2Cv3 report- if this key is a legitimate hashed ID, then the user has likely withdrawn from the C2C study."
-            )
+        if hashed_id not in ACCESS_KEYS_TO_C2C_IDS:
+            print(f"[{hashed_id}] access key not found.")
             return render_template("index.html", error_message=BUBBLE_MESSAGES["bad_key"])
 
         existing_dcv_video_data = redcap_helpers.export_dcv_video_data(
@@ -233,7 +237,7 @@ def index():
                 maxScreens=MAX_SCREENS,
             )
             print(
-                f"[{hashed_id}] Experiment record (C2C ID {access_keys_to_c2c_ids[hashed_id]}) already created with videos {survey_videos} and completed screen {most_recent_completed_screen_from_redcap}"
+                f"[{hashed_id}] Experiment record (C2C ID {ACCESS_KEYS_TO_C2C_IDS[hashed_id]}) already created with videos {survey_videos} and completed screen {most_recent_completed_screen_from_redcap}"
             )
             if int(most_recent_completed_screen_from_redcap) == MAX_SCREENS:
                 # If they completed the final screen, serve the completion message
@@ -252,7 +256,7 @@ def index():
             new_record = [
                 {
                     HASHED_ID_EXPERIMENT_REDCAP_VAR: hashed_id,
-                    "c2c_id": access_keys_to_c2c_ids[hashed_id],
+                    "c2c_id": ACCESS_KEYS_TO_C2C_IDS[hashed_id],
                     "survey_tm_start": start_time,
                     "user_agent": get_user_agent(),
                 },
@@ -269,7 +273,7 @@ def index():
                 survey_videos_index += 2
 
             print(
-                f"[{hashed_id}] Creating NEW record (C2C ID {access_keys_to_c2c_ids[hashed_id]}) with videos {survey_videos}"
+                f"[{hashed_id}] Creating NEW record (C2C ID {ACCESS_KEYS_TO_C2C_IDS[hashed_id]}) with videos {survey_videos}"
             )
             redcap_helpers.import_record(
                 flask_app.config["C2C_DCV_API_TOKEN"],
@@ -316,7 +320,7 @@ def check():
     No longer needed because functionality related to the email address has been removed from the requirements.
     """
     # "GET" request is needed so users can be redirected properly instead of seeing a "request not allowed" error
-    # Endpoint that receives data from a user that manually input their key (hashed ID) to an HTML form on "/"
+    # Endpoint that receives data from a user that manually input their access key (hashed ID) to an HTML form on "/"
     # Redirect to "/" with that key to check
     if "key" in request.form and len(request.form["key"]) > 0:
         user_provided_key = request.form["key"].strip()
@@ -340,10 +344,9 @@ def check():
 
 @flask_app.route("/intro", methods=["GET"])
 def intro():
-    # Endpoint if user is a new survey participant
+    # User visits this endpoint if they are a new survey participant
     if "key" in request.args and len(request.args["key"]) > 0:
         hashed_id = sanitize_key(request.args["key"])
-    # Debug: returns "hello intro!"
     return render_template("intro.html", key=hashed_id)
 
 
@@ -355,10 +358,8 @@ def videos():
             print(f"This key failed sanitization: {request.args['key']}")
             return redirect(url_for("index", error_code="bad_key"), code=301)
 
-        access_keys_to_c2c_ids = create_id_mapping()
-
-        if hashed_id not in access_keys_to_c2c_ids:
-            print(f"[{hashed_id}] key not found in the C2Cv3 report")
+        if hashed_id not in ACCESS_KEYS_TO_C2C_IDS:
+            print(f"[{hashed_id}] access key not found.")
             return redirect(url_for("index", error_code="bad_key"))
 
         if (
