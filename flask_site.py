@@ -1,3 +1,4 @@
+import csv
 import json
 import random
 import urllib.parse
@@ -10,16 +11,17 @@ import mindlib
 import redcap_helpers
 
 FLASK_APP_URL_PATH = "/c2c-retention-dce/survey"
-secrets = mindlib.json_to_dict("secrets.json")
 
 # The REDCap variable in this experiment's REDCap project that contains unique hashed C2C IDs
 HASHED_ID_EXPERIMENT_REDCAP_VAR = "access_key"
 
 # The REDCap variable in the C2Cv3 REDCap project that contains the same hashed IDs
-HASHED_ID_C2C_REDCAP_VAR = "proj_pid_813"
+# HASHED_ID_C2C_REDCAP_VAR = "proj_pid_813"
 
 # Configure this in tandem with c2c-id-hash.HASHED_ID_LENGTH (confirm w/ the REDCap projects)
 EXPECTED_HASHED_ID_LENGTH = 12
+
+PATH_TO_THIS_FOLDER = Path(__file__).resolve().parent
 
 BUBBLE_MESSAGES = {
     "bad_key": "Invalid key.",
@@ -32,17 +34,21 @@ BUBBLE_MESSAGES = {
     "incomplete_outro": "Please answer every question to proceed.",
 }
 
-# List of screen numbers that this survey has
-# ALLOWED_SCREENS = [1, 2, 3, 4, 5, 6, 7]
+# Total amount of screens in the survey
 MAX_SCREENS = 7  # PROD VALUE: 7
-MAX_VIDEOS = 2 * MAX_SCREENS
+MAX_VIDEOS = 2 * MAX_SCREENS  # Should be <= the amount of videos in videos.json
 
-VIDEOS = mindlib.json_to_dict("./content/videos.json")
+VIDEOS = mindlib.json_to_dict(Path(PATH_TO_THIS_FOLDER, "content", "videos.json"))
 UNDEFINED_VID_ID_PLACEHOLDER = "UNDEFINED"
 
-SUSPICIOUS_CHARS = [";", ":", "&", '"', "'", "`", ">", "<", "{", "}", "|", ".", "%"]
+# CSV file containing 2 columns:
+#   (1) "record_id"  = C2Cv3 ID (record_id in the C2Cv3 REDCap project - PID 696)
+#   (2) "access_key" = hashed ID unique to this experiment
+#                      (record_id in the C2C - Retention - Discrete Choice Video (DCV) project - PID 813)
+ID_FILE = Path(PATH_TO_THIS_FOLDER, "content", "c2cv3-ids-access-keys.csv")
 
-PATH_TO_THIS_FOLDER = Path(__file__).resolve().parent
+# Used to sanitize ID input
+SUSPICIOUS_CHARS = [";", ":", "&", '"', "'", "`", ">", "<", "{", "}", "|", ".", "%"]
 
 flask_app = Flask(__name__)
 # flask_app.config["APPLICATION_ROOT"] = URL_PREFIX
@@ -66,24 +72,41 @@ def sanitize_key(key_from_html_string: str) -> str:
     return ""
 
 
-def create_id_mapping(reversed=False) -> dict[str:str]:
+def create_id_mapping(id_file: Path = ID_FILE, reversed: bool = False) -> dict[str:str]:
     """Returns a dict mapping hashed C2C IDs to their corresponding original C2C IDs.
-    The report only includes C2C participants that have NOT withdrawn from the C2C study.
     If reversed = True, original C2C IDs will be mapped to their hashed IDs.
     """
-    c2cv3_project_keys = redcap_helpers.export_redcap_report(
-        flask_app.config["C2CV3_API_TOKEN"],
-        flask_app.config["REDCAP_API_URL"],
-        flask_app.config["C2CV3_TO_ACCESS_KEYS_REPORT_ID"],
-    )
-    result = {
-        record[HASHED_ID_C2C_REDCAP_VAR]: record["record_id"] for record in c2cv3_project_keys
-    }
-    if reversed:
-        result = {
-            record["record_id"]: record[HASHED_ID_C2C_REDCAP_VAR] for record in c2cv3_project_keys
-        }
-    return result
+    # redcap_helpers.export_redcap_report(
+    #     flask_app.config["C2CV3_API_TOKEN"],
+    #     flask_app.config["REDCAP_API_URL"],
+    #     flask_app.config["C2CV3_TO_ACCESS_KEYS_REPORT_ID"],
+    # )
+    # result = {
+    #     record[HASHED_ID_C2C_REDCAP_VAR]: record["record_id"] for record in c2cv3_project_keys
+    # }
+    # if reversed:
+    #     result = {
+    #         record["record_id"]: record[HASHED_ID_C2C_REDCAP_VAR] for record in c2cv3_project_keys
+    #     }
+    # return result
+    mapping = dict()
+
+    with open(id_file) as infile:
+        reader = csv.DictReader(infile)
+        for row in reader:
+            # print(row["record_id"], row["access_key"])
+            try:
+                if reversed:
+                    mapping[row["record_id"]] = row["access_key"]
+                else:
+                    mapping[row["access_key"]] = row["record_id"]
+            except KeyError as k:
+                print(
+                    f"***** Configure the IDs CSV '{id_file}' to contain columns 'record_id' and 'access_key'."
+                )
+                raise k
+    # print(mapping)
+    return mapping
 
 
 def check_email_addr_and_send_email(
@@ -359,13 +382,14 @@ def videos():
                 return render_template("videos.html")
 
             if scr != screen_to_serve:
+                # From the user's perspective: the URL will contain an incorrect screen number but
+                # the correct screen will be served
                 print(
                     f"[{hashed_id}] Incorrect screen accessed ({scr})!! Serving screen {screen_to_serve}"
                 )
                 scr = screen_to_serve
-                # From the user's perspective: the URL will contain an incorrect screen number but
-                # the correct screen will be served
 
+            # Old "screen 3" behavior that served videos that the user picked from screens 1 and 2:
             # SERVE_SCREEN_3 = most_recent_completed_screen == 2
             # if SERVE_SCREEN_3:
             #     resp_screen3 = make_response(
@@ -454,7 +478,7 @@ def outro():
         hashed_id = sanitize_key(request.args["key"])
 
         if not redcap_helpers.user_completed_outro(
-            secrets["C2C_DCV_API_TOKEN"], flask_app.config["REDCAP_API_URL"], hashed_id
+            flask_app.config["C2C_DCV_API_TOKEN"], flask_app.config["REDCAP_API_URL"], hashed_id
         ):
             # if the user did NOT complete the outro, upload their responses from html
             if request.method == "POST":
@@ -477,8 +501,8 @@ def outro():
                 }
                 # print(f"[{hashed_id}] outro responses: {redcap_outro_page_record}")
                 redcap_helpers.import_record(
-                    secrets["C2C_DCV_API_TOKEN"],
-                    secrets["REDCAP_API_URL"],
+                    flask_app.config["C2C_DCV_API_TOKEN"],
+                    flask_app.config["REDCAP_API_URL"],
                     [redcap_outro_page_record],
                 )
 
@@ -490,8 +514,8 @@ def outro():
                     "basic_information_complete": "2",
                 }
                 redcap_helpers.import_record(
-                    secrets["C2C_DCV_API_TOKEN"],
-                    secrets["REDCAP_API_URL"],
+                    flask_app.config["C2C_DCV_API_TOKEN"],
+                    flask_app.config["REDCAP_API_URL"],
                     [outro_basic_information_record],
                 )
                 print(f"[{hashed_id}] finished survey at {end_time}")
