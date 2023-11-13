@@ -37,10 +37,17 @@ BUBBLE_MESSAGES = {
 
 # Total amount of screens in the survey
 MAX_SCREENS = 7  # PROD VALUE: 7
-MAX_VIDEOS = 2 * MAX_SCREENS  # Should be <= the amount of videos in videos.json
+MAX_VIDEOS = 2 * MAX_SCREENS
 
-VIDEOS = mindlib.json_to_dict(Path(PATH_TO_THIS_FOLDER, "content", "videos.json"))
+VIDEOS_FILE_PATH = Path(PATH_TO_THIS_FOLDER, "content", "videos.json")
+VIDEOS = mindlib.json_to_dict(VIDEOS_FILE_PATH)
 UNDEFINED_VID_ID_PLACEHOLDER = "UNDEFINED"
+
+if MAX_VIDEOS > len(VIDEOS):
+    # Total number of videos to allocate should be <= the amount of videos in videos.json
+    raise Exception(
+        f"Number of videos to allocate ({MAX_VIDEOS}) is greater than the number of videos that exist ({len(VIDEOS)}) in '{VIDEOS_FILE_PATH}'"
+    )
 
 # CSV file containing 2 columns:
 #   (1) "record_id"  = C2Cv3 ID (record_id in the C2Cv3 REDCap project - PID 696)
@@ -114,8 +121,8 @@ def create_id_mapping(id_file: Path = ID_FILE, reversed: bool = False) -> dict[s
 
 ACCESS_KEYS_TO_C2C_IDS = create_id_mapping()
 C2C_IDS_TO_ACCESS_KEYS = create_id_mapping(reversed=True)
-print(f"Loaded {len(ACCESS_KEYS_TO_C2C_IDS)} access keys from {ID_FILE}")
-print(f"Loaded {len(C2C_IDS_TO_ACCESS_KEYS)} C2C IDs from {ID_FILE}")
+print(f"* Loaded {len(ACCESS_KEYS_TO_C2C_IDS)} access keys from {ID_FILE}")
+print(f"* Loaded {len(C2C_IDS_TO_ACCESS_KEYS)} C2C IDs from {ID_FILE}")
 
 
 def check_email_addr_and_send_email(
