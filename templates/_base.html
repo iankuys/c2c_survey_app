@@ -12,7 +12,7 @@
 
 <body>
     <div class="container-fluid prevent-select">
-        <div class="row pt-2">
+        <div class="row pt-3">
             <div class="col">
                 <a href="https://c2c.uci.edu/" target="_blank"><img src="{{ url_for('static', filename='UCI_C2CRegistry.png') }}" alt="UCI Consent 2 Contact Registry logo" width="324" height="47" style="float:right;" class="my-4"></a>
             </div>
@@ -24,15 +24,15 @@
         <hr>{% block content %} {% endblock %}
     </div>
     <script src="{{ url_for('static', filename='bootstrap.bundle.min.js') }}"></script>
-    <footer style="text-align: center;">
-        <div class="container-fluid">
+    <footer>
+        <div class="container-fluid text-center">
             <hr>{% if request.endpoint == "videos" %}
             <p>Please email <a href="mailto:mwitbrac@uci.edu">mwitbrac@uci.edu</a> if you require assistance.</p>
             {% endif %}
             <p><i>© 2023 UCI MIND</i></p>
-            <a href="https://mind.uci.edu/" target="_blank"><img src="{{ url_for('static', filename='UCI16_MIND_Full_ctr_blue copy.png') }}" alt="UCI MIND logo" width="278" height="58"><br />
-            <p>https://mind.uci.edu/</p></a>
-            <a href="https://c2c.uci.edu/" target="_blank"><p>https://c2c.uci.edu/</p></a>
+            <a href="https://mind.uci.edu/" target="_blank"><img src="{{ url_for('static', filename='UCI16_MIND_Full_ctr_blue.png') }}" alt="UCI MIND logo" width="278" height="58"></a><br />
+            <p><a href="https://mind.uci.edu/" target="_blank">https://mind.uci.edu/</a></p>
+            <p><a href="https://c2c.uci.edu/" target="_blank">https://c2c.uci.edu/</a></p>
         </div>
     </footer>
 </body>
