@@ -67,19 +67,6 @@ flask_app.config.from_file("secrets.json", load=json.load)  # JSON keys must be 
 ############ HELPERS ###########
 
 
-def sanitize_key(key_from_html_string: str) -> str:
-    """URL-decodes and sanitizes user-provided 'access keys' (intended to be hashed C2C IDs).
-    Returns an empty string if a string fails sanitization.
-    """
-    result = urllib.parse.unquote_plus(key_from_html_string).strip()
-    # Hashed IDs MUST be of a pre-specified length - anything else is suspicious.
-    if len(result) == EXPECTED_HASHED_ID_LENGTH and not any(
-        [s in result for s in SUSPICIOUS_CHARS]
-    ):
-        return result
-    return ""
-
-
 def create_id_mapping(id_file: Path = ID_FILE, reversed: bool = False) -> dict[str:str]:
     """Returns a dict mapping access keys (hashed C2C IDs) to their corresponding original C2C IDs.
     If reversed = True, original C2C IDs will be mapped to their access keys.
@@ -123,6 +110,23 @@ ACCESS_KEYS_TO_C2C_IDS = create_id_mapping()
 C2C_IDS_TO_ACCESS_KEYS = create_id_mapping(reversed=True)
 print(f"* Loaded {len(ACCESS_KEYS_TO_C2C_IDS)} access keys from {ID_FILE}")
 print(f"* Loaded {len(C2C_IDS_TO_ACCESS_KEYS)} C2C IDs from {ID_FILE}")
+if len(C2C_IDS_TO_ACCESS_KEYS) == 0:
+    raise Exception("***** Mapping of C2C IDs to access keys has 0 entries.")
+if len(ACCESS_KEYS_TO_C2C_IDS) == 0:
+    raise Exception("***** Mapping of access keys to C2C IDs has 0 entries.")
+
+
+def sanitize_key(key_from_html_string: str) -> str:
+    """URL-decodes and sanitizes user-provided 'access keys' (intended to be hashed C2C IDs).
+    Returns an empty string if a string fails sanitization.
+    """
+    result = urllib.parse.unquote_plus(key_from_html_string).strip()
+    # Hashed IDs MUST be of a pre-specified length - anything else is suspicious.
+    if len(result) == EXPECTED_HASHED_ID_LENGTH and not any(
+        [s in result for s in SUSPICIOUS_CHARS]
+    ):
+        return result
+    return ""
 
 
 def check_email_addr_and_send_email(
