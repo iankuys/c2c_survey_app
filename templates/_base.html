@@ -25,7 +25,7 @@
     </div>
     <script src="{{ url_for('static', filename='bootstrap.bundle.min.js') }}"></script>
     <footer>
-        <div class="container-fluid text-center">
+        <div class="container-fluid text-center prevent-select">
             <hr>{% if request.endpoint == "videos" %}
             <p>Please email <a href="mailto:mwitbrac@uci.edu">mwitbrac@uci.edu</a> if you require assistance.</p>
             {% endif %}
