@@ -68,24 +68,10 @@ flask_app.config.from_file("secrets.json", load=json.load)  # JSON keys must be 
 
 
 def create_id_mapping(id_file: Path = ID_FILE, reversed: bool = False) -> dict[str:str]:
-    """Returns a dict mapping access keys (hashed C2C IDs) to their corresponding original C2C IDs.
-    If reversed = True, original C2C IDs will be mapped to their access keys.
+    """Returns a dict that maps access keys (hashed C2C IDs) to their corresponding original C2C IDs.
+    If `reversed` == True, original C2C IDs will be mapped to their access keys.
     IDs and access keys are stored in a local CSV file (`id_file`).
     """
-    # Old behavior to get C2Cv3 IDs and access keys from the C2Cv3 REDCap project:
-    # redcap_helpers.export_redcap_report(
-    #     flask_app.config["C2CV3_API_TOKEN"],
-    #     flask_app.config["REDCAP_API_URL"],
-    #     flask_app.config["C2CV3_TO_ACCESS_KEYS_REPORT_ID"],
-    # )
-    # result = {
-    #     record[HASHED_ID_C2C_REDCAP_VAR]: record["record_id"] for record in c2cv3_project_keys
-    # }
-    # if reversed:
-    #     result = {
-    #         record["record_id"]: record[HASHED_ID_C2C_REDCAP_VAR] for record in c2cv3_project_keys
-    #     }
-    # return result
     mapping = dict()
 
     with open(id_file) as infile:
@@ -129,50 +115,50 @@ def sanitize_key(key_from_html_string: str) -> str:
     return ""
 
 
-def check_email_addr_and_send_email(
-    user_submitted_email_address: str,
-    our_email_server_address: str,
-    our_from_email_address: str,
-    our_from_email_display_name: str,
-    our_from_email_password: str,
-) -> None:
-    """If applicable, sends a reminder email to a user containing their access key for this experiment.
-    Unused because functionality related to sending emails has been removed from the requirements.
-    """
-    print(f"[{user_submitted_email_address}] - checking email to send access key")
-    active_c2cv3_emails = redcap_helpers.export_redcap_report(
-        flask_app.config["C2CV3_API_TOKEN"],
-        flask_app.config["REDCAP_API_URL"],
-        flask_app.config["C2CV3_EMAILS_REPORT_ID"],
-    )
-    for record in active_c2cv3_emails:
-        if (
-            "start_email" in record
-            and "record_id" in record
-            and user_submitted_email_address.lower() == record["start_email"].lower()
-        ):
-            # User's email matches one found in the report
-            c2c_id = record["record_id"]
-            if c2c_id not in C2C_IDS_TO_ACCESS_KEYS:
-                print(f"[{user_submitted_email_address}] C2C ID {c2c_id} is not active")
-                return
-            access_key_to_send = C2C_IDS_TO_ACCESS_KEYS[c2c_id]
-            if len(access_key_to_send) == 0:
-                print(
-                    f"[{user_submitted_email_address}] C2C ID {c2c_id} is active, but doesn't have an access key for this experiment"
-                )
-                return
-            # emails.send_mail(
-            #     record["start_email"],
-            #     access_key_to_send,
-            #     our_email_server_address,
-            #     our_from_email_address,
-            #     our_from_email_display_name,
-            #     our_from_email_password,
-            # )
-            return
-    print(f"[{user_submitted_email_address}] not found in the list of active C2C participants")
-    return
+# def check_email_addr_and_send_email(
+#     user_submitted_email_address: str,
+#     our_email_server_address: str,
+#     our_from_email_address: str,
+#     our_from_email_display_name: str,
+#     our_from_email_password: str,
+# ) -> None:
+#     """If applicable, sends a reminder email to a user containing their access key for this experiment.
+#     Unused because functionality related to sending emails has been removed from the requirements.
+#     """
+#     print(f"[{user_submitted_email_address}] - checking email to send access key")
+#     active_c2cv3_emails = redcap_helpers.export_redcap_report(
+#         flask_app.config["C2CV3_API_TOKEN"],
+#         flask_app.config["REDCAP_API_URL"],
+#         flask_app.config["C2CV3_EMAILS_REPORT_ID"],
+#     )
+#     for record in active_c2cv3_emails:
+#         if (
+#             "start_email" in record
+#             and "record_id" in record
+#             and user_submitted_email_address.lower() == record["start_email"].lower()
+#         ):
+#             # User's email matches one found in the report
+#             c2c_id = record["record_id"]
+#             if c2c_id not in C2C_IDS_TO_ACCESS_KEYS:
+#                 print(f"[{user_submitted_email_address}] C2C ID {c2c_id} is not active")
+#                 return
+#             access_key_to_send = C2C_IDS_TO_ACCESS_KEYS[c2c_id]
+#             if len(access_key_to_send) == 0:
+#                 print(
+#                     f"[{user_submitted_email_address}] C2C ID {c2c_id} is active, but doesn't have an access key for this experiment"
+#                 )
+#                 return
+#             emails.send_mail(
+#                 record["start_email"],
+#                 access_key_to_send,
+#                 our_email_server_address,
+#                 our_from_email_address,
+#                 our_from_email_display_name,
+#                 our_from_email_password,
+#             )
+#             return
+#     print(f"[{user_submitted_email_address}] not found in the list of active C2C participants")
+#     return
 
 
 def get_user_agent() -> str:
@@ -401,50 +387,6 @@ def videos():
                 )
                 scr = screen_to_serve
 
-            # Old "screen 3" behavior that served videos that the user picked from screens 1 and 2:
-            # SERVE_SCREEN_3 = most_recent_completed_screen == 2
-            # if SERVE_SCREEN_3:
-            #     resp_screen3 = make_response(
-            #         render_template("videos.html", screen=scr, vid_a_position=5, vid_b_position=6)
-            #     )
-
-            #     # List of 2 strings: each is the ID of a video that was previously selected
-            #     chosen_video_ids = redcap_helpers.get_first_two_selected_videos(
-            #         flask_app.config["C2C_DCV_API_TOKEN"],
-            #         flask_app.config["REDCAP_API_URL"],
-            #         hashed_id,
-            #     )
-            #     print(f"[{hashed_id}] Got previously selected videos: {chosen_video_ids}")
-            #     if chosen_video_ids == ["", ""]:
-            #         return redirect(url_for("index", error_code="s01"), code=301)
-
-            #     _vid5_id_index = random.randint(0, 1)  # 0 or 1
-            #     _vid6_id_index = _vid5_id_index - 1  # -1 or 0
-            #     v5_id = chosen_video_ids[_vid5_id_index]
-            #     v6_id = chosen_video_ids[_vid6_id_index]
-
-            #     # Set cookies for proper frontend behavior
-            #     resp_screen3.set_cookie(key="v5_id", value=v5_id)
-            #     resp_screen3.set_cookie(key="v5_url", value=VIDEOS[v5_id])
-            #     resp_screen3.set_cookie(key="v6_id", value=v6_id)
-            #     resp_screen3.set_cookie(key="v6_url", value=VIDEOS[v6_id])
-
-            #     # Create REDCap record with screen 3 data
-            #     record_screen3 = [
-            #         {
-            #             HASHED_ID_EXPERIMENT_REDCAP_VAR: hashed_id,
-            #             "redcap_event_name": "screen3_arm_1",
-            #             "video_a": v5_id,
-            #             "video_b": v6_id,
-            #         }
-            #     ]
-            #     redcap_helpers.import_record(
-            #         flask_app.config["C2C_DCV_API_TOKEN"],
-            #         flask_app.config["REDCAP_API_URL"],
-            #         record_screen3,
-            #     )
-            #     print(f"[{hashed_id}] Created REDCap record for Screen 3.")
-
             if scr > MAX_SCREENS:
                 # could consult cookie here too
                 most_recent_completed_screen_from_redcap = redcap_helpers.get_most_recent_screen(
@@ -471,8 +413,6 @@ def videos():
                 return render_template(
                     "videos.html", screen=scr, vid_a_position=vid_a_pos, vid_b_position=vid_b_pos
                 )
-            # elif SERVE_SCREEN_3:  # most_recent_completed_screen == 2
-            #     return resp_screen3
             # After the videos are completed, go to the outro questionnaire
             return redirect(url_for("outro", key=hashed_id), code=301)
 
