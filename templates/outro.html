@@ -2,12 +2,11 @@
 {% block content %}
 
 <div class="text-center">
-    <h2 class="row justify-content-center">Final survey</h2>
     <p>Please complete the following questionnaire to enter for a chance to win a $100 Amazon gift card.</p>
     <form class="col-lg-6 offset-lg-3 " method="post">
         {% for question in questions %}
         <div class="row justify-content-center form-group py-4" style="outline: 1px dotted rgba(0, 0, 0, 0.25)">
-            <label class="fw-bold" for="fname">{{question}}</label>
+            <label class="fw-bold pb-3" for="fname">{{question}}</label>
             {% set name = "outro_q" + loop.index|string %}
             {% if loop.index <= 9 %}
                 <div class="row">
