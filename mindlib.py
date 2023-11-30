@@ -12,15 +12,20 @@ from pathlib import Path
 EMAIL_REGEX = re.compile(r"^[A-Za-z0-9\.\+_-]+@[A-Za-z0-9\._-]+\.[a-zA-Z]*$")
 
 
-def timestamp_now(compact=False, only_ymd=False) -> str:
+def timestamp_now(utc=True, compact=False, only_ymd=False) -> str:
     """Returns a string of the current date+time in the form of
         YYYY-MM-DD hh:mm:ss
+    If `utc` == True, then returns a timestamp in Coordinated Universal Time (UTC).
+        If False, returns a timestamp in the local timezone.
     If `compact` == True, then returns in the form of
         YYYYMMDD_hhmmss
     If `only_ymd` == True, then only the first "year/month/day" portion is returned:
         YYYY-MM-DD or YYYYMMDD
     """
-    timestamp = datetime.now()
+    if utc:
+        timestamp = datetime.utcnow()
+    else:
+        timestamp = datetime.now()
     if compact:
         if only_ymd:
             return timestamp.strftime("%Y%m%d")
