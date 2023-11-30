@@ -221,9 +221,12 @@ def get_most_recent_screen(token: str, url: str, recordid: str, maxScreens: int)
     return str(most_recent_screen)
 
 
-def user_completed_outro(token: str, url: str, recordid: str) -> bool:
-    """Makes a REDCap API call to check if a participant completed the final "outro" questionnaire.
-    Returns True if they completed the questionnaire or False if not.
+def user_completed_survey(token: str, url: str, recordid: str) -> bool:
+    """Makes a REDCap API call to check if a participant completed the survey.
+    The survey is completed if any of these are true:
+      * They completed the final "outro" questionnaire
+      * They elected to skip the survey
+    Returns True if the user completed the survey and False if the survey is incomplete.
     """
     request_params = {
         "token": token,
@@ -233,9 +236,12 @@ def user_completed_outro(token: str, url: str, recordid: str) -> bool:
         "type": "flat",
         "csvDelimiter": "",
         "records[0]": recordid,
-        "fields[0]": "outro_complete",
-        "forms[0]": "outro",
-        "events[0]": "outroscreen_arm_1",
+        "fields[0]": "skipped",
+        "fields[1]": "outro_complete",
+        "forms[0]": "basic_information",
+        "forms[1]": "outro",
+        "events[0]": "start_arm_1",
+        "events[1]": "outroscreen_arm_1",
         "rawOrLabel": "raw",
         "rawOrLabelHeaders": "raw",
         "exportCheckboxLabel": "false",
@@ -253,4 +259,12 @@ def user_completed_outro(token: str, url: str, recordid: str) -> bool:
 
     # print(result)
 
-    return len(result) > 0 and result[0]["outro_complete"] == "2"
+    if len(result) > 0:
+        skipped_survey = result[0]["skipped"] == "1"
+        completed_questionnaire = result[1]["outro_complete"] == "2"
+        print(
+            f"[{recordid}]: skipped survey? {skipped_survey} / completed survey? {completed_questionnaire}"
+        )
+
+        return skipped_survey or completed_questionnaire
+    return False

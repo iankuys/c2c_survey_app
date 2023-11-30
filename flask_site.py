@@ -198,8 +198,15 @@ def index():
             return render_template("index.html", error_message=BUBBLE_MESSAGES["bad_key"])
 
         if "skip" in request.args and request.args["skip"] == "1":
-            print(f"[{hashed_id}] elected to skip the survey")
-            # TODO: create REDCap API call to update "skipped" flag and the timestamp
+            # Don't write more data if they already skipped or completed the survey
+            if not redcap_helpers.user_completed_survey(
+                flask_app.config["C2C_DCV_API_TOKEN"],
+                flask_app.config["REDCAP_API_URL"],
+                hashed_id,
+            ):
+                skip_time = mindlib.timestamp_now()
+                print(f"[{hashed_id}] elected to skip the survey at {skip_time}")
+                # TODO: create REDCap API call to update "skipped" flag and the timestamp
             return redirect(url_for("thankyou"), code=301)
 
         existing_dcv_video_data = redcap_helpers.export_dcv_video_data(
@@ -434,7 +441,7 @@ def outro():
     if "key" in request.args and len(request.args["key"]) > 0:
         hashed_id = sanitize_key(request.args["key"])
 
-        if not redcap_helpers.user_completed_outro(
+        if not redcap_helpers.user_completed_survey(
             flask_app.config["C2C_DCV_API_TOKEN"], flask_app.config["REDCAP_API_URL"], hashed_id
         ):
             # if the user did NOT complete the outro, upload their responses from html
