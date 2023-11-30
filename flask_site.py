@@ -197,16 +197,34 @@ def index():
             print(f"[{hashed_id}] access key not found.")
             return render_template("index.html", error_message=BUBBLE_MESSAGES["bad_key"])
 
-        if "skip" in request.args and request.args["skip"] == "1":
-            # Don't write more data if they already skipped or completed the survey
-            if not redcap_helpers.user_completed_survey(
+        already_finished_survey = redcap_helpers.user_completed_survey(
+            flask_app.config["C2C_DCV_API_TOKEN"],
+            flask_app.config["REDCAP_API_URL"],
+            hashed_id,
+        )
+
+        if "skip" in request.args and request.args["skip"] == "1" and not already_finished_survey:
+            # First time user has skipped the survey:
+            skip_time = mindlib.timestamp_now()
+            skipped_record = [
+                {
+                    HASHED_ID_EXPERIMENT_REDCAP_VAR: hashed_id,
+                    "c2c_id": ACCESS_KEYS_TO_C2C_IDS[hashed_id],
+                    "user_agent": get_user_agent(),
+                    "survey_tm_end": skip_time,
+                    "skipped": "1",
+                    "basic_information_complete": "2",
+                }
+            ]
+            redcap_helpers.import_record(
                 flask_app.config["C2C_DCV_API_TOKEN"],
                 flask_app.config["REDCAP_API_URL"],
-                hashed_id,
-            ):
-                skip_time = mindlib.timestamp_now()
-                print(f"[{hashed_id}] elected to skip the survey at {skip_time}")
-                # TODO: create REDCap API call to update "skipped" flag and the timestamp
+                skipped_record,
+            )
+            print(f"[{hashed_id}] elected to skip the survey at {skip_time}; imported REDCap data")
+            return redirect(url_for("thankyou"), code=301)
+
+        if already_finished_survey:
             return redirect(url_for("thankyou"), code=301)
 
         existing_dcv_video_data = redcap_helpers.export_dcv_video_data(

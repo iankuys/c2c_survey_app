@@ -261,9 +261,9 @@ def user_completed_survey(token: str, url: str, recordid: str) -> bool:
 
     if len(result) > 0:
         skipped_survey = result[0]["skipped"] == "1"
-        completed_questionnaire = result[1]["outro_complete"] == "2"
+        completed_questionnaire = len(result) > 1 and result[1]["outro_complete"] == "2"
         print(
-            f"[{recordid}]: skipped survey? {skipped_survey} / completed survey? {completed_questionnaire}"
+            f"[{recordid}] skipped survey? {skipped_survey} / completed survey? {completed_questionnaire}"
         )
 
         return skipped_survey or completed_questionnaire
