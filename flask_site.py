@@ -197,6 +197,11 @@ def index():
             print(f"[{hashed_id}] access key not found.")
             return render_template("index.html", error_message=BUBBLE_MESSAGES["bad_key"])
 
+        if "skip" in request.args and request.args["skip"] == "1":
+            print(f"[{hashed_id}] elected to skip the survey")
+            # TODO: create REDCap API call to update "skipped" flag and the timestamp
+            return redirect(url_for("thankyou"), code=301)
+
         existing_dcv_video_data = redcap_helpers.export_dcv_video_data(
             flask_app.config["C2C_DCV_API_TOKEN"],
             flask_app.config["REDCAP_API_URL"],
