@@ -1,45 +1,34 @@
 {% extends '_base.html' %}
 {% block content %}
 
-<div class="text-center">
-    <p>Please complete the following questionnaire to enter for a chance to win a $100 Amazon gift card.</p>
+<div>
+    <p class="text-center">Please complete the following questionnaire to enter for a chance to win a $100 Amazon gift card.</p>
     <form class="col-lg-6 offset-lg-3 " method="post">
         {% for question in questions %}
-        <div class="row justify-content-center form-group py-4" style="outline: 1px dotted rgba(0, 0, 0, 0.25)">
-            <label class="fw-bold pb-3" for="fname">{{question}}</label>
+        <div class="form-group px-4 py-4" style="outline: 1px dotted rgba(0, 0, 0, 0.25)">
+            <p class="fw-bold pb-1">{{question}}</p>
             {% set name = "outro_q" + loop.index|string %}
             {% if loop.index <= 9 %}
-                <div class="row">
-                    {% for option in choices %}
-                        <div class="col text-center">
-                            {% set id = name + "_option" + loop.index|string %}
-                            <input class="form-check-input" type="radio" name="{{ name }}" id="{{ id }}" value="{{ loop.index }}" required>
-                            <label class="form-check-label" for="{{ id }}">
-                                {{ option }}
-                            </label>
-                        </div>
-
+                {% for option in choices %}{% set id = name + "_option" + loop.index|string %}
+                <label class="form-check-label pb-2">
+                    <input class="form-check-input" type="radio" name="{{ name }}" id="{{ id }}" value="{{ loop.index }}" required>
+                    <span style="white-space:normal;">{{ option }}</span>
+                </label>
+                <br />
                 {% endfor %}
-                </div>
             {% else %}
-                <div class = "row form-check">
-                    {% for option in check_choices %}
-                    <div class="col py-2">                    
-                        {% set id = "check" + loop.index|string %}
-                        <input class="form-check-input" type="radio" name="{{ name }}" id="{{ id }}" value="{{ loop.index }}" required>
-                        <label class="form-check-label" for="{{ id }}">
-                            {{ option }}
-                        </label>
-                    </div>
-                    {% endfor %}
-                </div>
-            </div>
-            <div class="row justify-content-center">
-                <button type="submit" name="send_it" class="btn btn-primary">Submit</button>
-            </div>            
+                {% for option in check_choices %}{% set id = "check" + loop.index|string %}
+                <label class="form-check-label pb-2">
+                    <input class="form-check-input" type="radio" name="{{ name }}" id="{{ id }}" value="{{ loop.index }}" required>
+                    <span style="white-space:normal;">{{ option }}</span>
+                </label>
+                {% endfor %}
             {% endif %} 
         </div>
         {% endfor %}
+        <div class="pt-4 d-grid gap-2 col-6 mx-auto">
+            <button type="submit" name="send_it" class="btn btn-primary btn-lg">Submit</button>
+        </div>
     </form>
 </div>
 {% endblock %}

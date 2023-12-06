@@ -515,13 +515,18 @@ def outro():
                     questions = [line.strip() for line in survey_questions_infile.readlines()]
 
                 with open(survey_choices_path, "r") as survey_choices_infile:
-                    choices = [line.strip() for line in survey_choices_infile.readlines()]
+                    agree_choices = [line.strip() for line in survey_choices_infile.readlines()]
 
                 with open(check_choices_path, "r") as check_choices_infile:
-                    check_choices = [line.strip() for line in check_choices_infile.readlines()]
+                    final_question_choices = [
+                        line.strip() for line in check_choices_infile.readlines()
+                    ]
 
                 return render_template(
-                    "outro.html", questions=questions, choices=choices, check_choices=check_choices
+                    "outro.html",
+                    questions=questions,
+                    choices=agree_choices,
+                    check_choices=final_question_choices,
                 )
         else:
             print(f"[{hashed_id}] Already completed outro survey")
