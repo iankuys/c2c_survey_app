@@ -505,28 +505,28 @@ def outro():
                 return redirect(url_for("thankyou"), code=301)
             else:
                 # GET request = visiting this page in the web browser
-                survey_questions_path = Path(
-                    PATH_TO_THIS_FOLDER, "content", "survey_questions.txt"
+                questions_path = Path(PATH_TO_THIS_FOLDER, "content", "q_questions.txt")
+                agree_choices_path = Path(PATH_TO_THIS_FOLDER, "content", "q_agree_choices.txt")
+                final_question_choices_path = Path(
+                    PATH_TO_THIS_FOLDER, "content", "q_final_question_choices.txt"
                 )
-                survey_choices_path = Path(PATH_TO_THIS_FOLDER, "content", "survey_choices.txt")
-                check_choices_path = Path(PATH_TO_THIS_FOLDER, "content", "check_choice.txt")
 
-                with open(survey_questions_path, "r") as survey_questions_infile:
-                    questions = [line.strip() for line in survey_questions_infile.readlines()]
+                with open(questions_path, "r") as questions_infile:
+                    questions = [line.strip() for line in questions_infile.readlines()]
 
-                with open(survey_choices_path, "r") as survey_choices_infile:
-                    agree_choices = [line.strip() for line in survey_choices_infile.readlines()]
+                with open(agree_choices_path, "r") as agree_choices_infile:
+                    agree_choices = [line.strip() for line in agree_choices_infile.readlines()]
 
-                with open(check_choices_path, "r") as check_choices_infile:
+                with open(final_question_choices_path, "r") as final_choices_infile:
                     final_question_choices = [
-                        line.strip() for line in check_choices_infile.readlines()
+                        line.strip() for line in final_choices_infile.readlines()
                     ]
 
                 return render_template(
                     "outro.html",
                     questions=questions,
-                    choices=agree_choices,
-                    check_choices=final_question_choices,
+                    agree_choices=agree_choices,
+                    final_question_choices=final_question_choices,
                 )
         else:
             print(f"[{hashed_id}] Already completed outro survey")

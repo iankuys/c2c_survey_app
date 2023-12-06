@@ -8,3 +8,7 @@
     user-select: none;
     /* Standard syntax */
 }
+
+.questionnaire-choice {
+    white-space: normal;
+}
