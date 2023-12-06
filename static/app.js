@@ -63,25 +63,14 @@ function parseVimeoResponse(data, attr) {
     }
 };
 
-function getVideoPositionFromHTML(videoDivID) {
-    // Reads the video survey page's HTML content to obtain the video's position
-    // as an integer. Odd integers are on the left, even integers are on the right
-    // Example: videos 1 and 2 are the left and right videos of screen 1.
-    // Videos 3 and 4 are the left and right videos of screen 2. etc....
-    // Also sets the inner text of that element to be blank so it can be replaced
-    // with a Vimeo player element.
-    // Returns the integer position on success, or 0 on failure (if the video HTML
-    // element can't be found or if it can't be interpreted as an integer).
+function getDefaultVideoStringFromHTML(videoDivID) {
     videoElement = document.getElementById(videoDivID);
     if (videoElement) {
-        let vidPosition = videoElement.innerHTML;
+        let result = videoElement.innerHTML;
         videoElement.innerText = "";
-        let result = parseInt(vidPosition);
-        if (!isNaN(result)) {
-            return result;
-        }
+        return result;
     }
-    return 0;
+    return "";
 }
 
 function getVideoInfoFromCookie(videoPos, vidsCookies, cookieSuffix) {
@@ -179,11 +168,21 @@ function createLogEntry(vimeo_data, data_label, video_position, video_id) {
     return logEntry;
 }
 
+function getVideoInfoFromDefaultString(defaultString) {
+    let parts = defaultString.split(" - ");
+    let position = parseInt(parts[0]);
+    if (!isNaN(position)) {
+        parts[0] = position
+    }
+    return parts;
+}
+
 class VideoChoice {
-    constructor(idsAndURLs, playerHTMLID, selectButtonHTMLID, messageBoxHTMLID) {
-        this.position = getVideoPositionFromHTML(playerHTMLID);
-        this.vid_id = getVideoInfoFromCookie(this.position, idsAndURLs, "id");
-        this.url = getVideoInfoFromCookie(this.position, idsAndURLs, "url");
+    constructor(vidDefaultString, selectButtonHTMLID, messageBoxHTMLID) {
+        let vid_info = getVideoInfoFromDefaultString(vidDefaultString);
+        this.position = vid_info[0];
+        this.vid_id = vid_info[1];
+        this.url = vid_info[2];
         this.selectButtonID = selectButtonHTMLID;
         this.messageBoxID = messageBoxHTMLID;
 
@@ -205,7 +204,6 @@ class VideoChoice {
 async function setupVideoPlayer() {
     let allCookies = cookiesToJSON(document.cookie);
 
-    let allIDsAndURLs = getVideos(allCookies);
     mostCompletedScreen = parseInt(allCookies["completed_screen"]);
     if (thisScreenFromURL <= mostCompletedScreen) {
         // Protects survey flow from users clicking the "Back" button and moving to a previous screen
@@ -214,8 +212,10 @@ async function setupVideoPlayer() {
         return;
     }
 
-    videoA = new VideoChoice(allIDsAndURLs, VIDEO_A_HTML_ID, VIDEO_A_SELECT_BUTTON_HTML_ID, VIDEO_A_MESSAGE_BOX_HTML_ID);
-    videoB = new VideoChoice(allIDsAndURLs, VIDEO_B_HTML_ID, VIDEO_B_SELECT_BUTTON_HTML_ID, VIDEO_B_MESSAGE_BOX_HTML_ID);
+    vidADefaultString = getDefaultVideoStringFromHTML(VIDEO_A_HTML_ID);
+    vidBDefaultString = getDefaultVideoStringFromHTML(VIDEO_B_HTML_ID);
+    videoA = new VideoChoice(vidADefaultString, VIDEO_A_SELECT_BUTTON_HTML_ID, VIDEO_A_MESSAGE_BOX_HTML_ID);
+    videoB = new VideoChoice(vidBDefaultString, VIDEO_B_SELECT_BUTTON_HTML_ID, VIDEO_B_MESSAGE_BOX_HTML_ID);
 
     if (videoA.position <= 0 || videoB.position <= 0) {
         // Need both videos to load - if they load correctly, their positions will be >= 1
