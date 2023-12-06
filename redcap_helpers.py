@@ -169,6 +169,7 @@ def export_dcv_video_data(token: str, url: str, recordid: str, maxScreens: int) 
 def _get_screen_number(redcap_event_name: str, expected_event_name_prefix: str = "screen") -> int:
     """Parses a REDCap event name like 'screen2_arm_1' and returns the number that
     immediately follows the word 'screen' and precedes '_arm_'.
+    Returns 0 on error.
     """
     if not redcap_event_name.startswith(expected_event_name_prefix):
         return 0
@@ -180,7 +181,11 @@ def _get_screen_number(redcap_event_name: str, expected_event_name_prefix: str =
     return 0
 
 
-def get_most_recent_screen(token: str, url: str, recordid: str, maxScreens: int) -> str:
+def get_most_recent_screen(
+    token: str, url: str, recordid: str, max_screens: int, include_video_ids: bool = False
+) -> int | tuple[int, list[str]]:
+    """Returns an int representing the final screen that the user completed. If `include_video_ids`
+    is True, also returns a list of video IDs for the next screen."""
     request_params = {
         "token": token,
         "content": "record",
@@ -190,7 +195,9 @@ def get_most_recent_screen(token: str, url: str, recordid: str, maxScreens: int)
         "csvDelimiter": "",
         "records[0]": recordid,
         "fields[0]": "access_key",
-        "fields[1]": "video_complete",
+        "fields[1]": "video_a",
+        "fields[2]": "video_b",
+        "fields[3]": "video_complete",
         "rawOrLabel": "raw",
         "rawOrLabelHeaders": "raw",
         "exportCheckboxLabel": "false",
@@ -198,27 +205,43 @@ def get_most_recent_screen(token: str, url: str, recordid: str, maxScreens: int)
         "exportDataAccessGroups": "false",
         "returnFormat": "json",
     }
-
-    for screen in range(maxScreens):
+    for screen in range(max_screens):
+        # Modify request params to only fetch screen events
         request_params[f"events[{screen}]"] = f"screen{screen+1}_arm_1"
 
     r = requests.post(url, data=request_params)
     result = json.loads(r.text)
-    expected_number_of_screens = maxScreens  # 3
     if type(result) == dict:
         if "error" in result:
             raise REDCapError(
                 f"REDCap API returned an error while exporting most recent completed screen for the record: '{recordid}':\n{result['error']}"
             )
-    most_recent_screen = 0
-    if type(result) == list and len(result) == expected_number_of_screens:
+    print(result)
+    most_recent_completed_screen = 0
+    if type(result) == list and len(result) == max_screens:
         for screen_form in result:
-            if "video_complete" in screen_form and "redcap_event_name" in screen_form:
+            if (
+                "video_complete" in screen_form
+                and screen_form["video_complete"] == "2"
+                and "redcap_event_name" in screen_form
+            ):
                 this_screen = _get_screen_number(screen_form["redcap_event_name"])
-                if screen_form["video_complete"] == "2" and this_screen > most_recent_screen:
-                    most_recent_screen = this_screen
-                    # print(f"[{recordid}] Updated most recent screen from REDCap: {most_recent_screen}")
-    return str(most_recent_screen)
+                if this_screen > most_recent_completed_screen:
+                    most_recent_completed_screen = this_screen
+                    print(
+                        f"[{recordid}] Most recent screen from REDCap: {most_recent_completed_screen}"
+                    )
+    if not include_video_ids:
+        return most_recent_completed_screen
+    next_screen_ids = []
+    next_screen_number = most_recent_completed_screen + 1
+    if next_screen_number <= max_screens:
+        next_screen_redcap_event = f"screen{next_screen_number}_arm_1"
+        for screen_form in result:
+            if screen_form["redcap_event_name"] == next_screen_redcap_event:
+                next_screen_ids = [screen_form["video_a"], screen_form["video_b"]]
+                break
+    return (most_recent_completed_screen, next_screen_ids)
 
 
 def user_completed_survey(token: str, url: str, recordid: str) -> bool:

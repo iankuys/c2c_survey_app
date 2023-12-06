@@ -2,23 +2,22 @@
 {% block content %}
 
 <div class="text-center">
-    <div class="container">
-        {% if screen and vid_a_position and vid_b_position and vid_a_position is integer and vid_b_position is integer %}
+    <div class="container">{% if screen and vid_a_position and vid_a_position is integer and vid_b_position and vid_b_position is integer and vid_a_id and vid_b_id and vid_a_url and vid_b_url %}
         <p>Below are two videos. Please watch each in completion and then select the video that you feel provides the most compelling message to get you and other enrollees in the C2C Registry to renew your enrollment data. You will indicate your preference by selecting the button appearing under your preferred video.</p>
         <p>You may pause, rewind, or replay the videos as many times as you like.</p>
         <p><i>Please refrain from skipping any sections or seeking ahead in the videos.<br />The selection buttons will not activate until both videos have played through completely, starting from the beginning.</i></p>
-        {# <p>[DEBUG] This is actually screen <b><code>{{ screen }}</code></b></p> #}
+        <p>[DEBUG] This is actually screen <b><code>{{ screen }}</code></b></p>
         <div class="row">
             <div class="py-3 col">
                 <h2>Video A </h2>
-                <div id="videoA">{{ vid_a_position }}</div>
+                <div id="videoA">{{ vid_a_position }} - {{ vid_a_id }} - {{ vid_a_url }}</div>
                 <p id="videoAMessage">❌ Video not yet finished ❌</p>
                 <input type="radio" value="{{ vid_a_position }}" class="btn-check" name="options" id="videoASelect" autocomplete="off" onclick="activateSelectionButton()" disabled>
                 <label class="btn btn-outline-success" for="videoASelect">Select video A</label>
             </div>
             <div class="py-3 col">
                 <h2>Video B </h2>
-                <div id="videoB">{{ vid_b_position }}</div>
+                <div id="videoB">{{ vid_b_position }} - {{ vid_b_id }} - {{ vid_b_url }}</div>
                 <p id="videoBMessage">❌ Video not yet finished ❌</p>
                 <input type="radio" value="{{ vid_b_position }}" class="btn-check" name="options" id="videoBSelect" autocomplete="off" onclick="activateSelectionButton()" disabled>
                 <label class="btn btn-outline-success" for="videoBSelect">Select video B </label>
@@ -31,10 +30,8 @@
                 <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
                 Loading....
             </button>
-        </div>
-        {% else %}
-        <p>Couldn't retrieve videos.</p>
-        {% endif %}
+        </div>{% else %}
+        <p>Couldn't retrieve videos.</p>{% endif %}
     </div>
 </div>
 <script src="https://player.vimeo.com/api/player.js"></script>

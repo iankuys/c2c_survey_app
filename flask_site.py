@@ -36,7 +36,7 @@ BUBBLE_MESSAGES = {
 }
 
 # Total amount of screens in the survey
-MAX_SCREENS = 7  # PROD VALUE: 7
+MAX_SCREENS = 2  # PROD VALUE: 7
 MAX_VIDEOS = 2 * MAX_SCREENS
 
 VIDEOS_FILE_PATH = Path(PATH_TO_THIS_FOLDER, "content", "videos.json")
@@ -261,12 +261,12 @@ def index():
                 flask_app.config["C2C_DCV_API_TOKEN"],
                 flask_app.config["REDCAP_API_URL"],
                 hashed_id,
-                maxScreens=MAX_SCREENS,
+                max_screens=MAX_SCREENS,
             )
             print(
                 f"[{hashed_id}] Experiment record (C2C ID {ACCESS_KEYS_TO_C2C_IDS[hashed_id]}) already created with videos {survey_videos} and completed screen {most_recent_completed_screen_from_redcap}"
             )
-            if int(most_recent_completed_screen_from_redcap) == MAX_SCREENS:
+            if most_recent_completed_screen_from_redcap == MAX_SCREENS:
                 # If they completed the final screen, serve the completion message
                 # return redirect(url_for("index", msg="survey_completed"), code=301)
                 return redirect(url_for("outro", key=hashed_id), code=301)
@@ -331,7 +331,7 @@ def index():
             # Allows users to resume taking the survey
             resp.set_cookie(
                 key="completed_screen",
-                value=most_recent_completed_screen_from_redcap,
+                value=str(most_recent_completed_screen_from_redcap),
                 path=FLASK_APP_URL_PATH,
             )
             print(
@@ -389,66 +389,42 @@ def videos():
             print(f"[{hashed_id}] access key not found.")
             return redirect(url_for("index", error_code="bad_key"))
 
-        if (
-            "screen" in request.args
-            and len(request.args["screen"]) > 0
-            and "completed_screen" in request.cookies
-        ):
-            try:
-                scr = int(request.args["screen"])
-            except ValueError:
-                return render_template("videos.html")
-
-            # Check for previous screen completion
-            try:
-                most_recent_completed_screen = int(request.cookies["completed_screen"])
-                print(
-                    f"[{hashed_id}] Most recent completed screen (via cookie): {most_recent_completed_screen}"
-                )
-                screen_to_serve = most_recent_completed_screen + 1
-            except ValueError:
-                return render_template("videos.html")
-
-            if scr != screen_to_serve:
-                # From the user's perspective: the URL will contain an incorrect screen number but
-                # the correct screen will be served
-                print(
-                    f"[{hashed_id}] Incorrect screen accessed ({scr})!! Serving screen {screen_to_serve}"
-                )
-                scr = screen_to_serve
-
-            if scr > MAX_SCREENS:
-                # could consult cookie here too
-                most_recent_completed_screen_from_redcap = redcap_helpers.get_most_recent_screen(
-                    flask_app.config["C2C_DCV_API_TOKEN"],
-                    flask_app.config["REDCAP_API_URL"],
-                    hashed_id,
-                    maxScreens=MAX_SCREENS,
-                )
-                if int(most_recent_completed_screen_from_redcap) == MAX_SCREENS:
-                    # If they completed the final screen, serve the completion message
-                    return redirect(url_for("outro", key=hashed_id), code=301)
-                return render_template("videos.html")
+        (
+            most_recent_completed_screen_number,
+            this_screens_ids,
+        ) = redcap_helpers.get_most_recent_screen(
+            flask_app.config["C2C_DCV_API_TOKEN"],
+            flask_app.config["REDCAP_API_URL"],
+            hashed_id,
+            max_screens=MAX_SCREENS,
+            include_video_ids=True,
+        )
+        if most_recent_completed_screen_number < MAX_SCREENS and this_screens_ids != []:
+            this_screen = most_recent_completed_screen_number + 1
 
             # Get the correct video positions for the current screen:
             # screen 1 = videos 1 and 2,
             # screen 2 = videos 3 and 4,
             # screen 3 = videos 5 and 6, etc...
-            vid_a_pos = (scr * 2) - 1
-            vid_b_pos = scr * 2
-            print(f"[{hashed_id}] Starting screen {scr} (videos {vid_a_pos} & {vid_b_pos})")
-
-            if most_recent_completed_screen < MAX_SCREENS:
-                # Continue the video survey
-                return render_template(
-                    "videos.html", screen=scr, vid_a_position=vid_a_pos, vid_b_position=vid_b_pos
-                )
-            # After the videos are completed, go to the outro questionnaire
-            return redirect(url_for("outro", key=hashed_id), code=301)
-
-        else:
-            # No "screen" URL parameter or "completed_screen" cookie is missing
-            return redirect(url_for("index", error_code="v02"), code=301)
+            vid_a_pos = (this_screen * 2) - 1
+            vid_b_pos = this_screen * 2
+            print(
+                f"[{hashed_id}] Starting screen {this_screen} (videos {vid_a_pos} & {vid_b_pos}) {this_screens_ids}"
+            )
+            vid_a_url = VIDEOS[this_screens_ids[0]]
+            vid_b_url = VIDEOS[this_screens_ids[1]]
+            return render_template(
+                "videos.html",
+                screen=this_screen,
+                vid_a_position=vid_a_pos,
+                vid_a_id=this_screens_ids[0],
+                vid_a_url=vid_a_url,
+                vid_b_position=vid_b_pos,
+                vid_b_id=this_screens_ids[1],
+                vid_b_url=vid_b_url,
+            )
+        # Failsafe to redirect to the outro questionnaire
+        return redirect(url_for("outro", key=hashed_id), code=301)
     return redirect(url_for("index", error_code="missing_key"), code=301)
 
 
