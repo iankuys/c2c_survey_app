@@ -216,7 +216,7 @@ def get_most_recent_screen(
             raise REDCapError(
                 f"REDCap API returned an error while exporting most recent completed screen for the record: '{recordid}':\n{result['error']}"
             )
-    print(result)
+    # print(result)
     most_recent_completed_screen = 0
     if type(result) == list and len(result) == max_screens:
         for screen_form in result:
