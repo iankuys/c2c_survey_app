@@ -37,7 +37,7 @@ BUBBLE_MESSAGES = {
 }
 
 # Total amount of screens in the survey
-MAX_SCREENS = 2  # PROD VALUE: 7
+MAX_SCREENS = 7  # PROD VALUE: 7
 MAX_VIDEOS = 2 * MAX_SCREENS
 
 VIDEOS_FILE_PATH = Path(PATH_TO_THIS_FOLDER, "content", "videos.json")
