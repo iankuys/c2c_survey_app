@@ -31,7 +31,6 @@ const _params = new Proxy(new URLSearchParams(window.location.search), {
 });
 const access_key = _params.key;
 const thisScreenFromURL = parseInt(_params.screen);
-let mostCompletedScreen = 0;
 
 const finalSelectionButton = document.getElementById(VIDEO_SUBMIT_BUTTON_HTML_ID);
 const finalSelectionLoadingButton = document.getElementById(VIDEO_SUBMIT_LOADING_BUTTON_HTML_ID);
@@ -71,39 +70,6 @@ function getDefaultVideoStringFromHTML(videoDivID) {
         return result;
     }
     return "";
-}
-
-function getVideoInfoFromCookie(videoPos, vidsCookies, cookieSuffix) {
-    let cookieName = `v${videoPos}_${cookieSuffix}`;
-    return vidsCookies[cookieName];
-}
-
-function cookiesToJSON(cookieString) {
-    let output = {};
-    cookieString.split(/\s*;\s*/).forEach(function (pair) {
-        pair = pair.split(/\s*=\s*/);
-        output[pair[0]] = pair.splice(1).join('=');
-    });
-    return output;
-}
-
-// function jsonToCookieString(cookieJSON) {
-//     let result = "";
-//     for (const attr in cookieJSON) {
-//         result = result.concat(`; ${attr}=${cookieJSON[attr]}`);
-//     };
-//     console.log(`Created cookie string: "${result}"`);
-//     return result;
-// }
-
-function getVideos(cookiesJSON) {
-    result = {};
-    for (const c in cookiesJSON) {
-        if (c.startsWith("v") && (c.endsWith("_id") || c.endsWith("_url"))) {
-            result[c] = cookiesJSON[c];
-        }
-    }
-    return result;
 }
 
 function getUTCTimestampNow(includeMilliseconds = true) {
@@ -202,16 +168,6 @@ class VideoChoice {
 }
 
 async function setupVideoPlayer() {
-    let allCookies = cookiesToJSON(document.cookie);
-
-    mostCompletedScreen = parseInt(allCookies["completed_screen"]);
-    if (thisScreenFromURL <= mostCompletedScreen) {
-        // Protects survey flow from users clicking the "Back" button and moving to a previous screen
-        // Skip loading these Vimeo players and direct the user to the screen they should be at
-        window.location.href = `${server}/survey/videos?key=${access_key}&screen=${mostCompletedScreen + 1}`;
-        return;
-    }
-
     vidADefaultString = getDefaultVideoStringFromHTML(VIDEO_A_HTML_ID);
     vidBDefaultString = getDefaultVideoStringFromHTML(VIDEO_B_HTML_ID);
     videoA = new VideoChoice(vidADefaultString, VIDEO_A_SELECT_BUTTON_HTML_ID, VIDEO_A_MESSAGE_BOX_HTML_ID);
@@ -230,7 +186,7 @@ async function setupVideoPlayer() {
     console.log(`Loaded Video B: ${videoB.getLog()}`);
 
     videoPageStartTime = getUTCTimestampNow(includeMilliseconds = false);
-    console.log(`Most recently completed screen: ${mostCompletedScreen} (screen from URL: ${thisScreenFromURL}) started at ${videoPageStartTime}`);
+    console.log(`Screen from URL: ${thisScreenFromURL} started at ${videoPageStartTime}`);
     console.log(`Loaded videos ${videoA.vid_id} (pos ${videoA.position}) and ${videoB.vid_id} (pos ${videoB.position})`);
 
     function setupPlayerEvents(videoObj, otherVideoObj) {
@@ -381,10 +337,6 @@ async function uploadVideoSelection() {
 
         videoPageEndTime = getUTCTimestampNow(includeMilliseconds = false);
 
-        // Add 1 to the most completed screen to get THIS screen
-        let thisCompletedScreen = mostCompletedScreen + 1;
-        document.cookie = `completed_screen=${thisCompletedScreen}`;
-
         const requestOptions = {
             method: "POST",
             headers: {
@@ -392,7 +344,7 @@ async function uploadVideoSelection() {
             },
             body: JSON.stringify({
                 user_agent: navigator.userAgent,
-                screen: thisCompletedScreen,
+                screen: thisScreenFromURL,
                 screen_time_start: videoPageStartTime,
                 vidA_playback_time_start: videoA.startTimestamp,
                 vidA_playback_time_end: videoA.endTimestamp,
@@ -409,7 +361,7 @@ async function uploadVideoSelection() {
         }
         const url = `${server}/video_selected?key=${access_key}`;
         await fetch(url, requestOptions);
-        window.location.href = `${server}/survey/videos?key=${access_key}&screen=${thisCompletedScreen + 1}`;
+        window.location.href = `${server}/survey/videos?key=${access_key}&screen=${thisScreenFromURL + 1}`;
     } else {
         alert("Please finish watching all videos before making a selection.");
     }
