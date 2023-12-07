@@ -31,6 +31,7 @@ const _params = new Proxy(new URLSearchParams(window.location.search), {
 });
 const access_key = _params.key;
 const thisScreenFromURL = parseInt(_params.screen);
+const actualScreen = parseInt(document.getElementById("screen").innerText);
 
 const finalSelectionButton = document.getElementById(VIDEO_SUBMIT_BUTTON_HTML_ID);
 const finalSelectionLoadingButton = document.getElementById(VIDEO_SUBMIT_LOADING_BUTTON_HTML_ID);
@@ -167,7 +168,18 @@ class VideoChoice {
     }
 }
 
-async function setupVideoPlayer() {
+////////
+
+async function init() {
+    console.log("Loaded screen", actualScreen, "from page");
+    if (actualScreen != thisScreenFromURL) {
+        // Protects survey flow from users modifying the URL to be a different screen
+        // Does NOT protect against users that can edit HTML
+        // Skip loading the Vimeo players and direct the user to the screen they should be at
+        window.location.href = `${server}/survey/videos?key=${access_key}&screen=${actualScreen}`;
+        return;
+    }
+
     vidADefaultString = getDefaultVideoStringFromHTML(VIDEO_A_HTML_ID);
     vidBDefaultString = getDefaultVideoStringFromHTML(VIDEO_B_HTML_ID);
     videoA = new VideoChoice(vidADefaultString, VIDEO_A_SELECT_BUTTON_HTML_ID, VIDEO_A_MESSAGE_BOX_HTML_ID);
@@ -375,4 +387,4 @@ function activateSelectionButton() {
 
 ////////
 
-setupVideoPlayer();
+init();
