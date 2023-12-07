@@ -103,9 +103,17 @@ async def get_video_choice(video_page_data: VideoPageIn, key: str | None = None)
             # Remove bounding single- or double-quotes from the selected video ID string
             video_page_data.selected_vid_id = video_page_data.selected_vid_id[1:-1]
 
+        print(f"[{key}] Uploading data for screen {video_page_data.screen}....")
+        this_redcap_event = f"screen{video_page_data.screen}_arm_1"
+
+        # TODO: more thorough checks here to not overwrite any existing video data
+        # If a user clicks the "Back" button in their browser, then they can re-watch a screen
+        # Don't count the data from this duplicate screen if there's already data for this screen in REDCap
+        # The Flask middleware should automatically serve the correct screen
+
         redcap_video_page_record = {
             "access_key": key,
-            "redcap_event_name": f"screen{video_page_data.screen}_arm_1",
+            "redcap_event_name": this_redcap_event,
             "screen_tm_start": video_page_data.screen_time_start,
             "video_a_tm_start": video_page_data.vidA_playback_time_start,
             "video_a_tm_end": video_page_data.vidA_playback_time_end,
@@ -136,6 +144,18 @@ async def get_video_choice(video_page_data: VideoPageIn, key: str | None = None)
 @app.post(f"/{URL_PREFIX}/intro_vid_info")
 async def get_intro_info(video_page_data: IntroPageIn, key: str | None = None) -> None:
     if key:
+        print(f"[{key}] Uploading data for intro video....")
+
+        if redcap_helpers.check_event_for_prefilled_data(
+            secrets["C2C_DCV_API_TOKEN"],
+            secrets["REDCAP_API_URL"],
+            key,
+            "introscreen_arm_1",
+            "single_video_complete",
+        ):
+            print(f'[{key}] Already had data for intro video event "introscreen_arm_1"')
+            return
+
         redcap_intro_page_record = {
             "access_key": key,
             "redcap_event_name": "introscreen_arm_1",

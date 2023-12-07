@@ -291,3 +291,54 @@ def user_completed_survey(token: str, url: str, recordid: str) -> bool:
 
         return skipped_survey or completed_questionnaire
     return False
+
+
+def check_event_for_prefilled_data(
+    token: str,
+    url: str,
+    recordid: str,
+    event: str,
+    instrument_complete_field_name: str,
+    extra_fields: list[str] = [],
+) -> bool:
+    """Checks the built-in REDCap "instrument_complete" field to see if a particular event was already completed.
+    Returns True if the specified REDCap event has been completed.
+    Returns False by default.
+    """
+    request_params = {
+        "token": token,
+        "content": "record",
+        "action": "export",
+        "format": "json",
+        "type": "flat",
+        "csvDelimiter": "",
+        "records[0]": recordid,
+        "fields[0]": "access_key",
+        "fields[1]": instrument_complete_field_name,
+        "events[0]": event,
+        "rawOrLabel": "raw",
+        "rawOrLabelHeaders": "raw",
+        "exportCheckboxLabel": "false",
+        "exportSurveyFields": "false",
+        "exportDataAccessGroups": "false",
+        "returnFormat": "json",
+    }
+
+    for i, field in enumerate(extra_fields, start=2):
+        request_params[f"fields[{i}]"] = field
+
+    r = requests.post(url, data=request_params)
+    result = json.loads(r.text)
+    if type(result) == dict:
+        if "error" in result:
+            raise REDCapError(
+                f"REDCap API returned an error while exporting video data for the record: '{recordid}':\n{result['error']}"
+            )
+    elif type(result) == list and len(result) > 0:
+        return (
+            type(result[0]) == dict
+            and instrument_complete_field_name in result[0]
+            and result[0][instrument_complete_field_name] == "2"
+        )
+
+    return False
