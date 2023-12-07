@@ -268,7 +268,6 @@ def index():
             )
             if most_recent_completed_screen_from_redcap == MAX_SCREENS:
                 # If they completed the final screen, serve the completion message
-                # return redirect(url_for("index", msg="survey_completed"), code=301)
                 return redirect(url_for("outro", key=hashed_id), code=301)
         else:
             # New survey participant
@@ -312,7 +311,9 @@ def index():
 
         if already_started_survey:
             resp = redirect(
-                url_for("videos", key=hashed_id, screen=most_recent_completed_screen_from_redcap),
+                url_for(
+                    "videos", key=hashed_id, screen=most_recent_completed_screen_from_redcap + 1
+                ),
                 code=301,
             )
 
@@ -442,6 +443,7 @@ def outro():
             if request.method == "POST":
                 # POST request = page form has been completed and data will be uploaded
                 # print(request.form)
+                print(f"[{hashed_id}] Uploading final questionnaire data....")
                 redcap_outro_page_record = {
                     HASHED_ID_EXPERIMENT_REDCAP_VAR: hashed_id,
                     "redcap_event_name": "outroscreen_arm_1",
