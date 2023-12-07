@@ -106,7 +106,17 @@ async def get_video_choice(video_page_data: VideoPageIn, key: str | None = None)
         print(f"[{key}] Uploading data for screen {video_page_data.screen}....")
         this_redcap_event = f"screen{video_page_data.screen}_arm_1"
 
-        # TODO: more thorough checks here to not overwrite any existing video data
+        if redcap_helpers.check_event_for_prefilled_data(
+            secrets["C2C_DCV_API_TOKEN"],
+            secrets["REDCAP_API_URL"],
+            key,
+            this_redcap_event,
+            "video_complete",
+        ):
+            print(
+                f'[{key}] Already had data for screen {video_page_data.screen}; REDCap event "{this_redcap_event}"'
+            )
+            return
         # If a user clicks the "Back" button in their browser, then they can re-watch a screen
         # Don't count the data from this duplicate screen if there's already data for this screen in REDCap
         # The Flask middleware should automatically serve the correct screen
