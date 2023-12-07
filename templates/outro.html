@@ -2,7 +2,7 @@
 {% block content %}
 
 <div>
-    <form class="col-lg-6 offset-lg-3 " method="post">
+    <form class="col-lg-6 offset-lg-3" id="outro_questionnaire" method="post">
         {% for question in questions %}
         <div class="form-group px-4 py-4" style="outline: 1px dotted rgba(0, 0, 0, 0.25)">
             {% set name = "outro_q" + loop.index|string %}
@@ -30,8 +30,23 @@
         </div>
         {% endfor %}
         <div class="pt-3 d-grid gap-2 col-6 mx-auto">
-            <button type="submit" name="send_it" class="btn btn-primary btn-lg">Submit</button>
+            <button type="submit" name="send_it" class="btn btn-primary btn-lg" id="submit_button">Submit</button>
+            <button hidden type="button" class="btn btn-primary btn-lg disabled" id="loading_button">
+                <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                Loading....
+            </button>
         </div>
     </form>
 </div>
+
+<script type="text/javascript">
+    const form = document.getElementById('outro_questionnaire');
+    const submit_button = document.getElementById('submit_button');
+    const loading_button = document.getElementById('loading_button');
+    function disable_submit(event) {
+        submit_button.setAttribute('hidden', '');
+        loading_button.removeAttribute('hidden', '');
+    }
+    form.addEventListener("submit", disable_submit);
+</script>
 {% endblock %}
