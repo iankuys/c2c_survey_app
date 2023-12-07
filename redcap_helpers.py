@@ -244,12 +244,44 @@ def get_most_recent_screen(
     return (most_recent_completed_screen, next_screen_ids)
 
 
+def captured_user_agent(token: str, url: str, recordid: str) -> bool:
+    """Returns True if we previously captured the user-agent string for this user.
+    A user's user-agent string is capture on proper survey startup OR if they elect to skip the survey.
+    """
+    request_params = {
+        "token": token,
+        "content": "record",
+        "action": "export",
+        "format": "json",
+        "type": "flat",
+        "csvDelimiter": "",
+        "records[0]": recordid,
+        "fields[0]": "access_key",
+        "fields[1]": "user_agent",
+        "events[0]": "start_arm_1",
+        "rawOrLabel": "raw",
+        "rawOrLabelHeaders": "raw",
+        "exportCheckboxLabel": "false",
+        "exportSurveyFields": "false",
+        "exportDataAccessGroups": "false",
+        "returnFormat": "json",
+    }
+    r = requests.post(url, data=request_params)
+    # print('>>> HTTP Status: ' + str(r.status_code))
+    result = json.loads(r.text)
+    if type(result) == dict and "error" in result:
+        raise REDCapError(
+            f"REDCap API returned an error while checking if '{recordid}' has a user-agent string:\n{result['error']}"
+        )
+
+    return len(result) > 0 and "user_agent" in result[0] and len(result[0]["user_agent"]) > 0
+
+
 def user_completed_survey(token: str, url: str, recordid: str) -> bool:
-    """Makes a REDCap API call to check if a participant completed the survey.
-    The survey is completed if any of these are true:
+    """Returns True if the user completed the survey and False if the survey is incomplete.
+    The survey is completed if any of the following are true:
       * They completed the final "outro" questionnaire
       * They elected to skip the survey
-    Returns True if the user completed the survey and False if the survey is incomplete.
     """
     request_params = {
         "token": token,
@@ -277,7 +309,7 @@ def user_completed_survey(token: str, url: str, recordid: str) -> bool:
     result = json.loads(r.text)
     if type(result) == dict and "error" in result:
         raise REDCapError(
-            f"REDCap API returned an error while checking '{recordid}' for outro completion:\n{result['error']}"
+            f"REDCap API returned an error while checking if '{recordid}' finished or skipped the survey:\n{result['error']}"
         )
 
     # print(result)
@@ -332,7 +364,7 @@ def check_event_for_prefilled_data(
     if type(result) == dict:
         if "error" in result:
             raise REDCapError(
-                f"REDCap API returned an error while exporting video data for the record: '{recordid}':\n{result['error']}"
+                f"REDCap API returned an error while checking a REDCap event for existing data: '{recordid}', '{event}', '{instrument_complete_field_name}':\n{result['error']}"
             )
     elif type(result) == list and len(result) > 0:
         return (
