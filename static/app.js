@@ -356,7 +356,7 @@ async function uploadVideoSelection() {
             },
             body: JSON.stringify({
                 user_agent: navigator.userAgent,
-                screen: thisScreenFromURL,
+                screen: actualScreen,
                 screen_time_start: videoPageStartTime,
                 vidA_playback_time_start: videoA.startTimestamp,
                 vidA_playback_time_end: videoA.endTimestamp,
@@ -373,7 +373,7 @@ async function uploadVideoSelection() {
         }
         const url = `${server}/video_selected?key=${access_key}`;
         await fetch(url, requestOptions);
-        window.location.href = `${server}/survey/videos?key=${access_key}&screen=${thisScreenFromURL + 1}`;
+        window.location.href = `${server}/survey/videos?key=${access_key}&screen=${actualScreen + 1}`;
     } else {
         alert("Please finish watching all videos before making a selection.");
     }
