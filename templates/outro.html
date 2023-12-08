@@ -3,14 +3,12 @@
 
 <div>
     <form class="col-lg-6 offset-lg-3" id="outro_questionnaire" method="post">
+        <p>To better understand how people enrolled in registries approach the decision whether to continue participating and what motivates them to renew their enrollment data, we ask you to answer these brief survey questions. For each question, please rate your level of agreement to the provided statement about renewing your information in the C2C.</p>
         {% for question in questions %}
         <div class="form-group px-4 py-4" style="outline: 1px dotted rgba(0, 0, 0, 0.25)">
             {% set name = "outro_q" + loop.index|string %}
             {% if loop.index <= 9 %}
-            <p><b>{{loop.index}}) Rate your level of agreement with the following statement:</b>
-            <blockquote class="blockquote pb-1">
-                <p>{{question}}</p>
-            </blockquote>
+            <p><b>{{loop.index}}) {{question}}</b></p>
                 {% for option in agree_choices %}{% set id = name + "_option" + loop.index|string %}
                 <label class="form-check-label pb-2">
                     <input class="form-check-input" type="radio" name="{{ name }}" id="{{ id }}" value="{{ loop.index }}" required>
