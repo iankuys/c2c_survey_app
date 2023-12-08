@@ -402,12 +402,6 @@ def videos():
             max_screens=MAX_SCREENS,
             include_video_ids=True,
         )
-        if not redcap_helpers.captured_user_agent(
-            flask_app.config["C2C_DCV_API_TOKEN"], flask_app.config["REDCAP_API_URL"], hashed_id
-        ):
-            # Protects against users visiting "/videos" with a valid key before starting the survey
-            print(f"[{hashed_id}] tried to access videos page before onboarding")
-            return redirect(url_for("index", error_code="no_start"), code=301)
         if most_recent_completed_screen_number < MAX_SCREENS and this_screens_ids != []:
             this_screen = most_recent_completed_screen_number + 1
 
