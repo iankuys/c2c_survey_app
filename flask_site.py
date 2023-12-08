@@ -62,6 +62,7 @@ SUSPICIOUS_CHARS = [";", ":", "&", '"', "'", "`", ">", "<", "{", "}", "|", ".", 
 flask_app = Flask(__name__)
 # flask_app.config["APPLICATION_ROOT"] = URL_PREFIX
 flask_app.config.from_file("secrets.json", load=json.load)  # JSON keys must be in ALL CAPS
+flask_app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 0
 
 
 ################################
@@ -406,8 +407,6 @@ def videos():
         ):
             # Protects against users visiting "/videos" with a valid key before starting the survey
             print(f"[{hashed_id}] tried to access videos page before onboarding")
-            # BUG IN CHROME: if a user visits the videos page immediately and THEN onboards the survey
-            # properly, Chrome caches this error_code response and doesn't even request the videos page
             return redirect(url_for("index", error_code="no_start"), code=301)
         if most_recent_completed_screen_number < MAX_SCREENS and this_screens_ids != []:
             this_screen = most_recent_completed_screen_number + 1
@@ -531,3 +530,15 @@ def thankyou():
 @flask_app.errorhandler(404)
 def page_not_found(err):
     return render_template("404.html"), 404
+
+
+@flask_app.after_request
+def after_request(response):
+    # Prevents the web browser from caching server responses
+    # Thank you Feraru Silviu Marian and Mohamed Diaby! https://stackoverflow.com/a/50173687
+    # And extra opinions from https://stackoverflow.com/a/34067710
+    # Extra options for "Cache-Control" (might be unnecessary): "no-cache, must-revalidate, public"
+    response.headers["Cache-Control"] = "no-store, max-age=0"
+    # response.headers["Expires"] = 0
+    # response.headers["Pragma"] = "no-cache"
+    return response
