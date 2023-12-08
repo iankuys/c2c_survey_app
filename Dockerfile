@@ -1,4 +1,4 @@
-FROM python:3.11.5
+FROM python:3.11.6-slim-bullseye
 
 ENV TZ="America/Los_Angeles"
 ENV PYTHONUNBUFFERED=1
