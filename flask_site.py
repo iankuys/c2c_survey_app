@@ -27,7 +27,7 @@ PATH_TO_THIS_FOLDER = Path(__file__).resolve().parent
 BUBBLE_MESSAGES = {
     "bad_key": "Invalid key.",
     "missing_key": "Missing access key.",
-    "v01": "Failed to load videos. Please try starting the survey again.",  # missing cookies
+    "v01": "Failed to load videos. Please try starting the survey again.",  # unused
     "v02": "Failed to load videos. Please try starting the survey again.",  # missing "screen" URL param
     "s01": "An error occured with loading the next page. Please contact UCI MIND IT and provide your access key.",  # Couldn't generate screen 3 due to missing video IDs
     "survey_completed": "This survey has been completed. Thank you for your participation!",
@@ -196,7 +196,7 @@ def index():
             return render_template("index.html", error_message=BUBBLE_MESSAGES["bad_key"])
 
         if hashed_id not in ACCESS_KEYS_TO_C2C_IDS:
-            print(f"[{hashed_id}] access key not found.")
+            print(f"[{hashed_id}] index - access key not found.")
             return render_template("index.html", error_message=BUBBLE_MESSAGES["bad_key"])
 
         already_finished_survey = redcap_helpers.user_completed_survey(
@@ -223,7 +223,9 @@ def index():
                 flask_app.config["REDCAP_API_URL"],
                 skipped_record,
             )
-            print(f"[{hashed_id}] elected to skip the survey at {skip_time}; imported REDCap data")
+            print(
+                f"[{hashed_id}] index - elected to skip the survey at {skip_time}; imported REDCap data"
+            )
             return redirect(url_for("thankyou"), code=301)
 
         if already_finished_survey:
@@ -240,7 +242,7 @@ def index():
 
         already_started_survey = len(existing_dcv_video_data) > 0
         print(
-            f"[{hashed_id}] already started survey? {already_started_survey} (have {len(existing_dcv_video_data)} existing video instruments)"
+            f"[{hashed_id}] index - already started survey? {already_started_survey} (have {len(existing_dcv_video_data)} existing video instruments)"
         )
         if already_started_survey:
             # The user has generated a set of videos already - they may have finished the survey already
@@ -266,7 +268,7 @@ def index():
                 max_screens=MAX_SCREENS,
             )
             print(
-                f"[{hashed_id}] Experiment record (C2C ID {ACCESS_KEYS_TO_C2C_IDS[hashed_id]}) already created with videos {survey_videos} and completed screen {most_recent_completed_screen_from_redcap}"
+                f"[{hashed_id}] index - Experiment record (C2C ID {ACCESS_KEYS_TO_C2C_IDS[hashed_id]}) already created with videos {survey_videos} and completed screen {most_recent_completed_screen_from_redcap}"
             )
             if most_recent_completed_screen_from_redcap == MAX_SCREENS:
                 # If they completed the final screen, serve the completion message
@@ -301,7 +303,7 @@ def index():
                 survey_videos_index += 2
 
             print(
-                f"[{hashed_id}] Creating NEW record (C2C ID {ACCESS_KEYS_TO_C2C_IDS[hashed_id]}) with videos {survey_videos}"
+                f"[{hashed_id}] index - Creating NEW record (C2C ID {ACCESS_KEYS_TO_C2C_IDS[hashed_id]}) with videos {survey_videos}"
             )
             redcap_helpers.import_record(
                 flask_app.config["C2C_DCV_API_TOKEN"],
@@ -309,38 +311,12 @@ def index():
                 new_record,
             )
 
-            resp = redirect(url_for("intro", key=hashed_id), code=301)
+            return redirect(url_for("intro", key=hashed_id), code=301)
 
-        if already_started_survey:
-            resp = redirect(
-                url_for(
-                    "videos", key=hashed_id, screen=most_recent_completed_screen_from_redcap + 1
-                ),
-                code=301,
-            )
-
-        for i in range(len(survey_videos)):
-            resp.set_cookie(key=f"v{i + 1}_id", value=survey_videos[i])
-            resp.set_cookie(key=f"v{i + 1}_url", value=VIDEOS[survey_videos[i]])
-
-        # Set completed_screen cookie: the most recent screen the user completed
-        # Needs to be served in a path because the JS script has limited scope to where it can place the cookie
-        if not already_started_survey:
-            # Fresh start: user has no REDCap data
-            resp.set_cookie(key="completed_screen", value="0", path=FLASK_APP_URL_PATH)
-            print(f'[{hashed_id}] fresh start: set "completed_screen" to 0')
-        elif "completed_screen" not in request.cookies:
-            # User started the survey (they have REDCap data) and they cleared their cookies
-            # Allows users to resume taking the survey
-            resp.set_cookie(
-                key="completed_screen",
-                value=str(most_recent_completed_screen_from_redcap),
-                path=FLASK_APP_URL_PATH,
-            )
-            print(
-                f'[{hashed_id}] cleared cookies but is resuming survey - set "completed_screen" to {most_recent_completed_screen_from_redcap}'
-            )
-        return resp
+        return redirect(
+            url_for("videos", key=hashed_id, screen=most_recent_completed_screen_from_redcap + 1),
+            code=301,
+        )
     return render_template("index.html")
 
 
@@ -389,7 +365,7 @@ def videos():
             return redirect(url_for("index", error_code="bad_key"), code=301)
 
         if hashed_id not in ACCESS_KEYS_TO_C2C_IDS:
-            print(f"[{hashed_id}] access key not found.")
+            print(f"[{hashed_id}] videos - access key not found.")
             return redirect(url_for("index", error_code="bad_key"))
 
         (
@@ -412,7 +388,7 @@ def videos():
             vid_a_pos = (this_screen * 2) - 1
             vid_b_pos = this_screen * 2
             print(
-                f"[{hashed_id}] Starting screen {this_screen} (videos {vid_a_pos} & {vid_b_pos}) {this_screens_ids}"
+                f"[{hashed_id}] videos - Starting screen {this_screen} (videos {vid_a_pos} & {vid_b_pos}) {this_screens_ids}"
             )
             vid_a_url = VIDEOS[this_screens_ids[0]]
             vid_b_url = VIDEOS[this_screens_ids[1]]
@@ -445,7 +421,7 @@ def outro():
             if request.method == "POST":
                 # POST request = page form has been completed and data will be uploaded
                 # print(request.form)
-                print(f"[{hashed_id}] Uploading final questionnaire data....")
+                print(f"[{hashed_id}] outro - Uploading final questionnaire data....")
                 redcap_outro_page_record = {
                     HASHED_ID_EXPERIMENT_REDCAP_VAR: hashed_id,
                     "redcap_event_name": "outroscreen_arm_1",
@@ -461,7 +437,7 @@ def outro():
                     "outro_q10": f"{request.form['outro_q10']}",
                     "outro_complete": 2,
                 }
-                # print(f"[{hashed_id}] outro responses: {redcap_outro_page_record}")
+                # print(f"[{hashed_id}] outro - responses: {redcap_outro_page_record}")
                 redcap_helpers.import_record(
                     flask_app.config["C2C_DCV_API_TOKEN"],
                     flask_app.config["REDCAP_API_URL"],
@@ -480,7 +456,7 @@ def outro():
                     flask_app.config["REDCAP_API_URL"],
                     [outro_basic_information_record],
                 )
-                print(f"[{hashed_id}] finished survey at {end_time}")
+                print(f"[{hashed_id}] outro - finished survey at {end_time}")
 
                 return redirect(url_for("thankyou"), code=301)
             else:
@@ -509,7 +485,7 @@ def outro():
                     final_question_choices=final_question_choices,
                 )
         else:
-            print(f"[{hashed_id}] Already completed outro survey")
+            print(f"[{hashed_id}] outro - Already completed outro survey")
             return redirect(url_for("thankyou"), code=301)
 
     return redirect(url_for("index", msg="missing_key"), code=301)
