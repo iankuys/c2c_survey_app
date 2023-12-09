@@ -228,9 +228,7 @@ def get_most_recent_screen(
                 this_screen = _get_screen_number(screen_form["redcap_event_name"])
                 if this_screen > most_recent_completed_screen:
                     most_recent_completed_screen = this_screen
-                    print(
-                        f"[{recordid}] Most recent screen from REDCap: {most_recent_completed_screen}"
-                    )
+    print(f"[{recordid}] Most recent screen from REDCap: {most_recent_completed_screen}")
     if not include_video_ids:
         return most_recent_completed_screen
     next_screen_ids = []
