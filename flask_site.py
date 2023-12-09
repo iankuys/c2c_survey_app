@@ -303,7 +303,7 @@ def index():
                 survey_videos_index += 2
 
             print(
-                f"[{hashed_id}] index - Creating NEW record (C2C ID {ACCESS_KEYS_TO_C2C_IDS[hashed_id]}) with videos {survey_videos}"
+                f"[{hashed_id}] index - Creating NEW record (C2C ID {ACCESS_KEYS_TO_C2C_IDS[hashed_id]}) with videos {survey_videos} at {start_time}"
             )
             redcap_helpers.import_record(
                 flask_app.config["C2C_DCV_API_TOKEN"],
@@ -353,7 +353,9 @@ def intro():
     # User visits this endpoint if they are a new survey participant
     if "key" in request.args and len(request.args["key"]) > 0:
         hashed_id = sanitize_key(request.args["key"])
-    return render_template("intro.html", key=hashed_id)
+        print(f"[{hashed_id}] intro - accessed")
+        return render_template("intro.html", key=hashed_id)
+    return redirect(url_for("index", error_code="bad_key"), code=301)
 
 
 @flask_app.route("/videos", methods=["GET"])
@@ -421,7 +423,9 @@ def outro():
             if request.method == "POST":
                 # POST request = page form has been completed and data will be uploaded
                 # print(request.form)
-                print(f"[{hashed_id}] outro - Uploading final questionnaire data....")
+                end_time = mindlib.timestamp_now()
+                print(f"[{hashed_id}] outro - finished survey at {end_time}")
+
                 redcap_outro_page_record = {
                     HASHED_ID_EXPERIMENT_REDCAP_VAR: hashed_id,
                     "redcap_event_name": "outroscreen_arm_1",
@@ -444,7 +448,6 @@ def outro():
                     [redcap_outro_page_record],
                 )
 
-                end_time = mindlib.timestamp_now()
                 outro_basic_information_record = {
                     HASHED_ID_EXPERIMENT_REDCAP_VAR: hashed_id,
                     "redcap_event_name": "start_arm_1",
@@ -456,11 +459,12 @@ def outro():
                     flask_app.config["REDCAP_API_URL"],
                     [outro_basic_information_record],
                 )
-                print(f"[{hashed_id}] outro - finished survey at {end_time}")
+                print(f"[{hashed_id}] outro - survey complete")
 
                 return redirect(url_for("thankyou"), code=301)
             else:
                 # GET request = visiting this page in the web browser
+                print(f"[{hashed_id}] outro - rendering questionnaire")
                 questions_path = Path(PATH_TO_THIS_FOLDER, "content", "q_questions.txt")
                 agree_choices_path = Path(PATH_TO_THIS_FOLDER, "content", "q_agree_choices.txt")
                 final_question_choices_path = Path(
