@@ -363,7 +363,18 @@ def intro():
     # User visits this endpoint if they are a new survey participant
     if "key" in request.args and len(request.args["key"]) > 0:
         hashed_id = sanitize_key(request.args["key"])
-        logs.write_log("accessed", hashed_id, "intro")
+        logs.write_log("accessed, uploading initial intro data....", hashed_id, "intro")
+        initial_intro_data = {
+            "access_key": hashed_id,
+            "redcap_event_name": "introscreen_arm_1",
+            "page_loaded": mindlib.timestamp_now(),
+            "single_video_complete": "0",
+        }
+        redcap_helpers.import_record(
+            flask_app.config["C2C_DCV_API_TOKEN"],
+            flask_app.config["REDCAP_API_URL"],
+            [initial_intro_data],
+        )
         return render_template("intro.html", key=hashed_id)
     return redirect(url_for("index", error_code="bad_key"), code=301)
 
