@@ -7,6 +7,7 @@ from pathlib import Path
 from flask import Flask, redirect, render_template, request, url_for
 
 # import emails
+import logs
 import mindlib
 import redcap_helpers
 
@@ -196,7 +197,11 @@ def index():
             return render_template("index.html", error_message=BUBBLE_MESSAGES["bad_key"])
 
         if hashed_id not in ACCESS_KEYS_TO_C2C_IDS:
-            print(f"[{hashed_id}] index - access key not found.")
+            logs.write_log(
+                "access key not found",
+                hashed_id,
+                "index",
+            )
             return render_template("index.html", error_message=BUBBLE_MESSAGES["bad_key"])
 
         already_finished_survey = redcap_helpers.user_completed_survey(
@@ -223,12 +228,11 @@ def index():
                 flask_app.config["REDCAP_API_URL"],
                 skipped_record,
             )
-            print(
-                f"[{hashed_id}] index - elected to skip the survey at {skip_time}; imported REDCap data"
-            )
+            logs.write_log("elected to skip the survey; imported REDCap data", hashed_id, "index")
             return redirect(url_for("thankyou"), code=301)
 
         if already_finished_survey:
+            logs.write_log("already finished survey", hashed_id, "index")
             return redirect(url_for("thankyou"), code=301)
 
         existing_dcv_video_data = redcap_helpers.export_dcv_video_data(
@@ -241,8 +245,10 @@ def index():
         # print(survey_record)
 
         already_started_survey = len(existing_dcv_video_data) > 0
-        print(
-            f"[{hashed_id}] index - already started survey? {already_started_survey} (have {len(existing_dcv_video_data)} existing video instruments)"
+        logs.write_log(
+            f"already started survey? {already_started_survey} (have {len(existing_dcv_video_data)} existing video instruments)",
+            hashed_id,
+            "index",
         )
         if already_started_survey:
             # The user has generated a set of videos already - they may have finished the survey already
@@ -267,8 +273,10 @@ def index():
                 hashed_id,
                 max_screens=MAX_SCREENS,
             )
-            print(
-                f"[{hashed_id}] index - Experiment record (C2C ID {ACCESS_KEYS_TO_C2C_IDS[hashed_id]}) already created with videos {survey_videos} and completed screen {most_recent_completed_screen_from_redcap}"
+            logs.write_log(
+                f"Experiment record (C2C ID {ACCESS_KEYS_TO_C2C_IDS[hashed_id]}) already created with videos {survey_videos} and completed screen {most_recent_completed_screen_from_redcap}",
+                hashed_id,
+                "index",
             )
             if most_recent_completed_screen_from_redcap == MAX_SCREENS:
                 # If they completed the final screen, serve the completion message
@@ -302,8 +310,10 @@ def index():
                 new_record.append(screen_record)
                 survey_videos_index += 2
 
-            print(
-                f"[{hashed_id}] index - Creating NEW record (C2C ID {ACCESS_KEYS_TO_C2C_IDS[hashed_id]}) with videos {survey_videos} at {start_time}"
+            logs.write_log(
+                f"Creating NEW record (C2C ID {ACCESS_KEYS_TO_C2C_IDS[hashed_id]}) with videos {survey_videos}",
+                hashed_id,
+                "index",
             )
             redcap_helpers.import_record(
                 flask_app.config["C2C_DCV_API_TOKEN"],
@@ -353,7 +363,7 @@ def intro():
     # User visits this endpoint if they are a new survey participant
     if "key" in request.args and len(request.args["key"]) > 0:
         hashed_id = sanitize_key(request.args["key"])
-        print(f"[{hashed_id}] intro - accessed")
+        logs.write_log("accessed", hashed_id, "intro")
         return render_template("intro.html", key=hashed_id)
     return redirect(url_for("index", error_code="bad_key"), code=301)
 
@@ -367,7 +377,7 @@ def videos():
             return redirect(url_for("index", error_code="bad_key"), code=301)
 
         if hashed_id not in ACCESS_KEYS_TO_C2C_IDS:
-            print(f"[{hashed_id}] videos - access key not found.")
+            logs.write_log("access key not found.", hashed_id, "videos")
             return redirect(url_for("index", error_code="bad_key"))
 
         (
@@ -389,8 +399,10 @@ def videos():
             # screen 3 = videos 5 and 6, etc...
             vid_a_pos = (this_screen * 2) - 1
             vid_b_pos = this_screen * 2
-            print(
-                f"[{hashed_id}] videos - Starting screen {this_screen} (videos {vid_a_pos} & {vid_b_pos}) {this_screens_ids}"
+            logs.write_log(
+                f"Starting screen {this_screen} (videos {vid_a_pos} & {vid_b_pos}) {this_screens_ids}",
+                hashed_id,
+                "videos",
             )
             vid_a_url = VIDEOS[this_screens_ids[0]]
             vid_b_url = VIDEOS[this_screens_ids[1]]
@@ -424,7 +436,7 @@ def outro():
                 # POST request = page form has been completed and data will be uploaded
                 # print(request.form)
                 end_time = mindlib.timestamp_now()
-                print(f"[{hashed_id}] outro - finished survey at {end_time}")
+                logs.write_log("finished final questionnaire", hashed_id, "outro")
 
                 redcap_outro_page_record = {
                     HASHED_ID_EXPERIMENT_REDCAP_VAR: hashed_id,
@@ -441,7 +453,6 @@ def outro():
                     "outro_q10": f"{request.form['outro_q10']}",
                     "outro_complete": 2,
                 }
-                # print(f"[{hashed_id}] outro - responses: {redcap_outro_page_record}")
                 redcap_helpers.import_record(
                     flask_app.config["C2C_DCV_API_TOKEN"],
                     flask_app.config["REDCAP_API_URL"],
@@ -459,12 +470,12 @@ def outro():
                     flask_app.config["REDCAP_API_URL"],
                     [outro_basic_information_record],
                 )
-                print(f"[{hashed_id}] outro - survey complete")
+                logs.write_log("survey complete", hashed_id, "outro")
 
                 return redirect(url_for("thankyou"), code=301)
             else:
                 # GET request = visiting this page in the web browser
-                print(f"[{hashed_id}] outro - rendering questionnaire")
+                logs.write_log("rendering questionnaire", hashed_id, "outro")
                 questions_path = Path(PATH_TO_THIS_FOLDER, "content", "q_questions.txt")
                 agree_choices_path = Path(PATH_TO_THIS_FOLDER, "content", "q_agree_choices.txt")
                 final_question_choices_path = Path(
@@ -489,7 +500,7 @@ def outro():
                     final_question_choices=final_question_choices,
                 )
         else:
-            print(f"[{hashed_id}] outro - Already completed outro survey")
+            logs.write_log("Already completed outro questionnaire", hashed_id, "outro")
             return redirect(url_for("thankyou"), code=301)
 
     return redirect(url_for("index", msg="missing_key"), code=301)

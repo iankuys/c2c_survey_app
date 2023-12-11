@@ -7,6 +7,7 @@ from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
 
 import flask_site
+import logs
 import mindlib
 import redcap_helpers
 
@@ -103,7 +104,7 @@ async def get_video_choice(video_page_data: VideoPageIn, key: str | None = None)
             # Remove bounding single- or double-quotes from the selected video ID string
             video_page_data.selected_vid_id = video_page_data.selected_vid_id[1:-1]
 
-        print(f"[{key}] API - Uploading data for screen {video_page_data.screen}....")
+        logs.write_log(f"Uploading data for screen {video_page_data.screen}....", key, "api")
         this_redcap_event = f"screen{video_page_data.screen}_arm_1"
 
         if redcap_helpers.check_event_for_prefilled_data(
@@ -113,8 +114,10 @@ async def get_video_choice(video_page_data: VideoPageIn, key: str | None = None)
             this_redcap_event,
             "video_complete",
         ):
-            print(
-                f'[{key}] API - Already had data for screen {video_page_data.screen}; REDCap event "{this_redcap_event}"'
+            logs.write_log(
+                f'Already had data for screen {video_page_data.screen}; REDCap event "{this_redcap_event}"',
+                key,
+                "api",
             )
             return
         # If a user clicks the "Back" button in their browser, then they can re-watch a screen
@@ -146,7 +149,7 @@ async def get_video_choice(video_page_data: VideoPageIn, key: str | None = None)
         import_result = redcap_helpers.import_record(
             secrets["C2C_DCV_API_TOKEN"], secrets["REDCAP_API_URL"], [redcap_video_page_record]
         )
-        print(f"[{key}] API - Uploaded {import_result} record(s) to REDCap")
+        logs.write_log(f"Uploaded {import_result} record(s) to REDCap", key, "api")
     else:
         print("No access key detected")
 
@@ -154,21 +157,24 @@ async def get_video_choice(video_page_data: VideoPageIn, key: str | None = None)
 @app.post(f"/{URL_PREFIX}/intro_vid_info")
 async def get_intro_info(video_page_data: IntroPageIn, key: str | None = None) -> None:
     if key:
-        print(f"[{key}] API - Uploading data for intro video....")
+        logs.write_log("Uploading data for intro video....", key, "api")
 
+        intro_redcap_event = "introscreen_arm_1"
         if redcap_helpers.check_event_for_prefilled_data(
             secrets["C2C_DCV_API_TOKEN"],
             secrets["REDCAP_API_URL"],
             key,
-            "introscreen_arm_1",
+            intro_redcap_event,
             "single_video_complete",
         ):
-            print(f'[{key}] API - Already had data for intro video event "introscreen_arm_1"')
+            logs.write_log(
+                f'Already had data for intro video event "{intro_redcap_event}"', key, "api"
+            )
             return
 
         redcap_intro_page_record = {
             "access_key": key,
-            "redcap_event_name": "introscreen_arm_1",
+            "redcap_event_name": intro_redcap_event,
             "single_video_id": video_page_data.vid_id,
             "single_video_playcount": video_page_data.vid_watch_count,
             "single_video_tm_start": video_page_data.vid_playback_time_start,
@@ -180,7 +186,7 @@ async def get_intro_info(video_page_data: IntroPageIn, key: str | None = None) -
         import_result = redcap_helpers.import_record(
             secrets["C2C_DCV_API_TOKEN"], secrets["REDCAP_API_URL"], [redcap_intro_page_record]
         )
-        print(f"[{key}] API - Uploaded {import_result} record(s) to REDCap")
+        logs.write_log(f"Uploaded {import_result} record(s) to REDCap", key, "api")
     else:
         print("No access key detected")
 
