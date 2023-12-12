@@ -15,14 +15,14 @@
             <div id="videoAbox" class="col mb-4">
                 <h2>Video A</h2>
                 <div id="videoA" class="ratio ratio-16x9">{{ vid_a_position }} - {{ vid_a_id }} - {{ vid_a_url }}</div>
-                <p id="videoAMessage" class="mt-2"><b><img src="{{ url_for('static', filename='dash.svg') }}" class="filter-yellow"> Video not yet finished <img src="{{ url_for('static', filename='dash.svg') }}" class="filter-yellow"></b></p>
+                <p id="videoAMessage" class="mt-2"><b><img src="{{ url_for('static', filename='dash.svg') }}"> Video not yet finished <img src="{{ url_for('static', filename='dash.svg') }}"></b></p>
                 <input type="radio" value="{{ vid_a_position }}" class="btn-check" name="options" id="videoASelect" autocomplete="off" onclick="activateSelectionButton()" disabled>
                 <label class="btn btn-outline-success" for="videoASelect">Select video A</label>
             </div>
             <div id="videoBbox" class="col mb-4">
                 <h2>Video B</h2>
                 <div id="videoB" class="ratio ratio-16x9">{{ vid_b_position }} - {{ vid_b_id }} - {{ vid_b_url }}</div>
-                <p id="videoBMessage" class="mt-2"><b><img src="{{ url_for('static', filename='dash.svg') }}" class="filter-yellow"> Video not yet finished <img src="{{ url_for('static', filename='dash.svg') }}" class="filter-yellow"></b></p>
+                <p id="videoBMessage" class="mt-2"><b><img src="{{ url_for('static', filename='dash.svg') }}"> Video not yet finished <img src="{{ url_for('static', filename='dash.svg') }}"></b></p>
                 <input type="radio" value="{{ vid_b_position }}" class="btn-check" name="options" id="videoBSelect" autocomplete="off" onclick="activateSelectionButton()" disabled>
                 <label class="btn btn-outline-success" for="videoBSelect">Select video B</label>
             </div>
