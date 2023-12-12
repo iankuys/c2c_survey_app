@@ -4,6 +4,7 @@ const server = "http://127.0.0.1:8000/c2c-retention-dce";
 //const server = "https://studies.mind.uci.edu/c2c-retention-dce";
 
 const VIDEO_ROW_ID = "videoRow";
+const DASH_URL = server + "/survey/static/dash.svg"
 
 // For any given video page: video A is on the left/top, video B is on the right/bottom
 const VIDEO_A_BOX_ID = "videoAbox";
@@ -258,7 +259,7 @@ async function init() {
                 videoObj.logs.push(createLogEntry(data, "SEEKED AHEAD TO", videoObj.position, videoObj.vid_id));
                 if (!videoObj.finished) {
                     console.log(`Video ${videoObj.position} - not counting this view`)
-                    _videoMessageBoxElement.innerHTML = "<b>❌ Video not yet finished ❌</b><br />Please do not skip ahead in the video.";
+                    _videoMessageBoxElement.innerHTML = `<b><img src=${DASH_URL} class="filter-yellow"> Video not yet finished <img src=${DASH_URL} class="filter-yellow"></b><br />Please do not skip ahead in the video.`;
                 }
                 videoObj.skipped = true;
             } else if (positionBeforeSeek >= positionAfterSeek) {
@@ -273,7 +274,7 @@ async function init() {
                 console.log(`Video ${videoObj.position} (ID ${videoObj.vid_id}): skipped back to the beginning`);
                 videoObj.skipped = false;
                 if (!videoObj.finished) {
-                    _videoMessageBoxElement.innerHTML = "<b>❌ Video not yet finished ❌</b>";
+                    _videoMessageBoxElement.innerHTML = `<b><img src=${DASH_URL} class="filter-yellow"> Video not yet finished <img src=${DASH_URL} class="filter-yellow"></b>`;
                 }
             }
         })
@@ -304,7 +305,7 @@ async function init() {
             } else {
                 // There were skips
                 if (!videoObj.finished) {
-                    _videoMessageBoxElement.innerHTML = "<b>❌ Video not yet finished ❌</b><br />Please watch the entire video before making a selection.";
+                    _videoMessageBoxElement.innerHTML = `<b><img src=${DASH_URL} class="filter-yellow"> Video not yet finished <img src=${DASH_URL} class="filter-yellow"></b><br />Please watch the entire video before making a selection.`;
                 }
             }
 

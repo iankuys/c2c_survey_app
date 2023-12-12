@@ -23,6 +23,10 @@
     }
 }
 
+.filter-yellow {
+    filter: brightness(0) saturate(100%) invert(70%) sepia(79%) saturate(2606%) hue-rotate(7deg) brightness(107%) contrast(97%);
+}
+
 .questionnaire-choice {
     white-space: normal;
 }
