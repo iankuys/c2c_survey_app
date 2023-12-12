@@ -321,12 +321,13 @@ def index():
                 new_record,
             )
 
-            return redirect(url_for("intro", key=hashed_id), code=301)
+            # return redirect(url_for("intro", key=hashed_id), code=301)
 
-        return redirect(
-            url_for("videos", key=hashed_id, screen=most_recent_completed_screen_from_redcap + 1),
-            code=301,
-        )
+        # return redirect(
+        #     url_for("videos", key=hashed_id, screen=most_recent_completed_screen_from_redcap + 1),
+        #     code=301,
+        # )
+        return redirect(url_for("intro", key=hashed_id), code=301)
     return render_template("index.html")
 
 
@@ -367,8 +368,7 @@ def intro():
         initial_intro_data = {
             "access_key": hashed_id,
             "redcap_event_name": "introscreen_arm_1",
-            "page_loaded": mindlib.timestamp_now(),
-            "single_video_complete": "0",
+            "page_served": mindlib.timestamp_now(),
         }
         redcap_helpers.import_record(
             flask_app.config["C2C_DCV_API_TOKEN"],
