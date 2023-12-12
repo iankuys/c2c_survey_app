@@ -420,6 +420,7 @@ def videos():
             return render_template(
                 "videos.html",
                 screen=this_screen,
+                max_screens=MAX_SCREENS,
                 vid_a_position=vid_a_pos,
                 vid_a_id=this_screens_ids[0],
                 vid_a_url=vid_a_url,
