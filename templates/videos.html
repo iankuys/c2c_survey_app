@@ -4,11 +4,8 @@
 <div class="text-center">
     <div class="container">{% if screen and max_screens and vid_a_position and vid_a_position is integer and vid_b_position and vid_b_position is integer and vid_a_id and vid_b_id and vid_a_url and vid_b_url %}
         <h1 id="screen" hidden>{{ screen }}</h1>
-        <div class="mb-2">
-        {% for i in range(max_screens) %}
-        {% if i+1 < screen %}<img class="display-inline-block" src="{{ url_for('static', filename='progress-1-dot.png') }}">
-        {% else %}<img class="display-inline-block" src="{{ url_for('static', filename='progress-0-dot.png') }}">{% endif %}
-        {% endfor %}
+        <div class="mb-2">{% for i in range(max_screens) %}
+        {% if i+1 < screen %}   <img class="display-inline-block" src="{{ url_for('static', filename='progress-1-dot.png') }}">{% else %}   <img class="display-inline-block" src="{{ url_for('static', filename='progress-0-dot.png') }}">{% endif %}{% endfor %}
         </div>
         <p>Below are two videos. Please watch each in completion and then select the video that you feel provides the most compelling message to get you and other enrollees in the C2C Registry to renew your enrollment data. You will indicate your preference by selecting the button appearing under your preferred video.</p>
         <p>You may pause, rewind, or replay the videos as many times as you like.</p>
@@ -18,14 +15,14 @@
             <div id="videoAbox" class="col mb-4">
                 <h2>Video A</h2>
                 <div id="videoA" class="ratio ratio-16x9">{{ vid_a_position }} - {{ vid_a_id }} - {{ vid_a_url }}</div>
-                <p id="videoAMessage" class="mt-2">❌ Video not yet finished ❌</p>
+                <p id="videoAMessage" class="mt-2"><b>❌ Video not yet finished ❌</b></p>
                 <input type="radio" value="{{ vid_a_position }}" class="btn-check" name="options" id="videoASelect" autocomplete="off" onclick="activateSelectionButton()" disabled>
                 <label class="btn btn-outline-success" for="videoASelect">Select video A</label>
             </div>
             <div id="videoBbox" class="col mb-4">
                 <h2>Video B</h2>
                 <div id="videoB" class="ratio ratio-16x9">{{ vid_b_position }} - {{ vid_b_id }} - {{ vid_b_url }}</div>
-                <p id="videoBMessage" class="mt-2">❌ Video not yet finished ❌</p>
+                <p id="videoBMessage" class="mt-2"><b>❌ Video not yet finished ❌</b></p>
                 <input type="radio" value="{{ vid_b_position }}" class="btn-check" name="options" id="videoBSelect" autocomplete="off" onclick="activateSelectionButton()" disabled>
                 <label class="btn btn-outline-success" for="videoBSelect">Select video B</label>
             </div>
