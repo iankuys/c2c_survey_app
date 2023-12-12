@@ -3,10 +3,14 @@
 const server = "http://127.0.0.1:8000/c2c-retention-dce";
 //const server = "https://studies.mind.uci.edu/c2c-retention-dce";
 
+const VIDEO_ROW_ID = "videoRow";
+
 // For any given video page: video A is on the left/top, video B is on the right/bottom
+const VIDEO_A_BOX_ID = "videoAbox";
 const VIDEO_A_HTML_ID = "videoA";
 const VIDEO_A_SELECT_BUTTON_HTML_ID = "videoASelect";
 const VIDEO_A_MESSAGE_BOX_HTML_ID = "videoAMessage";
+const VIDEO_B_BOX_ID = "videoBbox";
 const VIDEO_B_HTML_ID = "videoB";
 const VIDEO_B_SELECT_BUTTON_HTML_ID = "videoBSelect";
 const VIDEO_B_MESSAGE_BOX_HTML_ID = "videoBMessage";
@@ -35,6 +39,10 @@ const actualScreen = parseInt(document.getElementById("screen").innerText);
 
 const finalSelectionButton = document.getElementById(VIDEO_SUBMIT_BUTTON_HTML_ID);
 const finalSelectionLoadingButton = document.getElementById(VIDEO_SUBMIT_LOADING_BUTTON_HTML_ID);
+
+const videoRow = document.getElementById(VIDEO_ROW_ID);
+const videoAbox = document.getElementById(VIDEO_A_BOX_ID);
+const videoBbox = document.getElementById(VIDEO_B_BOX_ID);
 
 //// Helpers ////
 
@@ -385,6 +393,23 @@ function activateSelectionButton() {
     }
 }
 
+function setVideoBoxClasses() {
+    // Change appearance of videos to stack vertically on lower-sized screens
+    let wid = document.body.clientWidth;
+    if (wid < 770) {
+        videoRow.className = "";
+        videoAbox.className = "row mb-4";
+        videoBbox.className = "row mb-4";
+    } else {
+        videoRow.className = "row";
+        videoAbox.className = "col mb-4";
+        videoBbox.className = "col mb-4";
+    }
+}
+
 ////////
 
+setVideoBoxClasses();
 init();
+
+window.onresize = setVideoBoxClasses;
