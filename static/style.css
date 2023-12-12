@@ -9,6 +9,20 @@
     /* Standard syntax */
 }
 
+@media (max-width: 767px) {
+    #header {
+        width: 100%;
+        margin: auto;
+    }
+}
+
+@media (min-width: 768px) {
+    #header {
+        width: 80%;
+        margin: auto;
+    }
+}
+
 .questionnaire-choice {
     white-space: normal;
 }
