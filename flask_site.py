@@ -507,6 +507,7 @@ def outro():
 
                 return render_template(
                     "outro.html",
+                    max_screens=MAX_SCREENS,
                     questions=questions,
                     agree_choices=agree_choices,
                     final_question_choices=final_question_choices,
