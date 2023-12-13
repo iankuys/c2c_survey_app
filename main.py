@@ -1,3 +1,4 @@
+from sys import getsizeof
 from typing import List
 
 import uvicorn
@@ -19,20 +20,28 @@ URL_PREFIX = "c2c-retention-dce"
 VIDEOS = mindlib.json_to_dict("./content/videos.json")
 
 
-def transform_logs(log_list: list[dict]) -> str:
+def transform_logs(log_list: list[dict], max_string_size: int = 65535) -> str:
     """Transforms a list of log events from our survey pages' JavaScript into something that looks
     more presentable and uses less data than raw JSON. The string returned from this function will
     be uploaded directly to REDCap in plain text.
+    REDCap will truncate string fields to 65535 characters, which could potentially happen if a
+    user created way too many log entries (by scrubbing the video playback bar for a minute and a
+    half, for example). To reduce network traffic and load on the REDCap server, this function will
+    pre-truncate the resultant logs string to be a maximum of 65535 characters.
     """
     # return json.dumps(log_list)  # temp, lots of wasted space and kinda ugly
-    result = []
+    log_strs = []
     for log_line in log_list:
         if "tm" in log_line and "type" in log_line:
             formatted_log_line = f"[{log_line['tm']}] {log_line['type']}"
             if "data" in log_line and len(log_line["data"]) > 0:
                 formatted_log_line += f": {log_line['data']}"
-            result.append(formatted_log_line)
-    return "\n".join(result)
+            log_strs.append(formatted_log_line)
+    result = "\n".join(log_strs)
+    if len(result) > max_string_size:
+        print(f"    Truncated logs string from {len(result)} to {max_string_size}")
+        return result[:max_string_size]
+    return result
 
 
 ################################
@@ -79,7 +88,7 @@ class IntroPageIn(BaseModel):
 
 
 def debug_print_video_data_in(key: str, v: VideoPageIn) -> None:
-    print(f"User '{key}' ({v.user_agent}) finished a survey page")
+    print(f"User '{key}' ({v.user_agent}) finished a survey page - got {getsizeof(v)} bytes")
     print(
         f"\tSelected video with ID '{v.selected_vid_id}' @ pos {v.selected_vid_position} (screen {v.screen})"
     )
@@ -107,6 +116,9 @@ async def get_video_choice(video_page_data: VideoPageIn, key: str | None = None)
         logs.write_log(f"Uploading data for screen {video_page_data.screen}....", key, "api")
         this_redcap_event = f"screen{video_page_data.screen}_arm_1"
 
+        # If a user clicks the "Back" button in their browser, they could re-watch a screen
+        # Don't count the data from this duplicate screen if there's already data for this screen in REDCap
+        # The Flask middleware should automatically serve the correct screen
         if redcap_helpers.check_event_for_prefilled_data(
             secrets["C2C_DCV_API_TOKEN"],
             secrets["REDCAP_API_URL"],
@@ -120,9 +132,8 @@ async def get_video_choice(video_page_data: VideoPageIn, key: str | None = None)
                 "api",
             )
             return
-        # If a user clicks the "Back" button in their browser, then they can re-watch a screen
-        # Don't count the data from this duplicate screen if there's already data for this screen in REDCap
-        # The Flask middleware should automatically serve the correct screen
+
+        # debug_print_video_data_in(key, video_page_data)
 
         redcap_video_page_record = {
             "access_key": key,
@@ -141,7 +152,6 @@ async def get_video_choice(video_page_data: VideoPageIn, key: str | None = None)
             "video_complete": "2",
         }
 
-        # debug_print_video_data_in(key, video_page_data)
         # from json import dumps
         # json_sent_to_redcap = dumps(redcap_video_page_record)
         # print(json_sent_to_redcap)
