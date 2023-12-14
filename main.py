@@ -208,5 +208,11 @@ async def redirect_to_flask():
     return RedirectResponse(f"/{URL_PREFIX}/survey", status_code=302)
 
 
+@app.exception_handler(404)
+async def redirect_404(request, __):
+    logs.write_log(f"Improper page accessed: {request.method} {request.url}")
+    return RedirectResponse(f"/{URL_PREFIX}/survey", status_code=302)
+
+
 if __name__ == "__main__":
     uvicorn.run(app)
