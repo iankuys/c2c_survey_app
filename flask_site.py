@@ -11,7 +11,7 @@ import logs
 import mindlib
 import redcap_helpers
 
-FLASK_APP_URL_PATH = "/c2c-retention-dce/survey"
+FLASK_APP_URL_PATH = "/retention/survey"
 
 # The REDCap variable in this experiment's REDCap project that contains
 # participants' access keys: C2C IDs that have been salted + hashed from an external Python script (c2c-id-hash)

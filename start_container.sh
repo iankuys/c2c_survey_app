@@ -1,5 +1,5 @@
 #!/bin/bash
-app="c2c-retention-dce"
+app="c2c-retention"
 port=8080
 
 echo "Stopping ${app}"

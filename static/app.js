@@ -1,7 +1,6 @@
 //////// Constants/options ////////
 
-const server = "http://127.0.0.1:8000/c2c-retention-dce";
-//const server = "https://studies.mind.uci.edu/c2c-retention-dce";
+const server = "https://studies.mind.uci.edu/retention";
 
 const VIDEO_ROW_ID = "videoRow";
 const DASH_URL = server + "/survey/static/dash.svg"
@@ -140,7 +139,7 @@ function createLogEntry(vimeo_data, data_label, video_position, video_id) {
 
         logEntry.data = `${_vimeo_seconds}sec/${_vimeo_percent_percent}%`;
     }
-    console.log(logEntry);
+    // console.log(logEntry);
     return logEntry;
 }
 
@@ -180,7 +179,7 @@ class VideoChoice {
 ////////
 
 async function init() {
-    console.log("Loaded screen", actualScreen, "from page");
+    // console.log("Loaded screen", actualScreen, "from page");
     if (actualScreen != thisScreenFromURL) {
         // Protects survey flow from users modifying the URL to be a different screen
         // Does NOT protect against users that can edit HTML
@@ -196,19 +195,19 @@ async function init() {
 
     if (videoA.position <= 0 || videoB.position <= 0) {
         // Need both videos to load - if they load correctly, their positions will be >= 1
-        console.log(`Did not load videos due to invalid positions (A: ${videoA.position}, B: ${videoB.position})`)
+        // console.log(`Did not load videos due to invalid positions (A: ${videoA.position}, B: ${videoB.position})`)
         return;
     }
 
     // Initialize Vimeo player inside their respective VideoChoice objects
     videoA.player = new Vimeo.Player(VIDEO_A_HTML_ID, { url: videoA.url });
     videoB.player = new Vimeo.Player(VIDEO_B_HTML_ID, { url: videoB.url });
-    console.log(`Loaded Video A: ${videoA.getLog()}`);
-    console.log(`Loaded Video B: ${videoB.getLog()}`);
+    // console.log(`Loaded Video A: ${videoA.getLog()}`);
+    // console.log(`Loaded Video B: ${videoB.getLog()}`);
 
     videoPageStartTime = getUTCTimestampNow(includeMilliseconds = false);
-    console.log(`Screen from URL: ${thisScreenFromURL} started at ${videoPageStartTime}`);
-    console.log(`Loaded videos ${videoA.vid_id} (pos ${videoA.position}) and ${videoB.vid_id} (pos ${videoB.position})`);
+    // console.log(`Screen from URL: ${thisScreenFromURL} started at ${videoPageStartTime}`);
+    // console.log(`Loaded videos ${videoA.vid_id} (pos ${videoA.position}) and ${videoB.vid_id} (pos ${videoB.position})`);
 
     function setupPlayerEvents(videoObj, otherVideoObj) {
         // https://developer.vimeo.com/player/sdk/reference#events-for-playback-controls
@@ -228,7 +227,7 @@ async function init() {
             });
             if (videoObj.startTimestamp == "") {
                 videoObj.startTimestamp = getUTCTimestampNow(includeMilliseconds = false);
-                console.log(`Set video @ pos ${videoObj.position} start time to ${videoObj.startTimestamp}`);
+                // console.log(`Set video @ pos ${videoObj.position} start time to ${videoObj.startTimestamp}`);
             }
             videoObj.logs.push(createLogEntry(data, "PLAYED AT", videoObj.position, videoObj.vid_id));
             videoObj.playbackPosition = parseVimeoResponse(data, "seconds");
@@ -258,7 +257,7 @@ async function init() {
                 // Don't allow this view to count as "watched" if the user skips ahead
                 videoObj.logs.push(createLogEntry(data, "SEEKED AHEAD TO", videoObj.position, videoObj.vid_id));
                 if (!videoObj.finished) {
-                    console.log(`Video ${videoObj.position} - not counting this view`)
+                    // console.log(`Video ${videoObj.position} - not counting this view`)
                     _videoMessageBoxElement.innerHTML = `<b><img src=${DASH_URL}> Video not yet finished <img src=${DASH_URL}></b><br />Please do not skip ahead in the video.`;
                 }
                 videoObj.skipped = true;
@@ -271,7 +270,7 @@ async function init() {
             if (positionAfterSeek <= SEEK_BEGINNING_THRESHOLD) {
                 // If a user skips to the beginning, reset skips flag and re-allow this viewing
                 videoObj.logs.push(createLogEntry(data, "SEEKED TO START", videoObj.position, videoObj.vid_id));
-                console.log(`Video ${videoObj.position} (ID ${videoObj.vid_id}): skipped back to the beginning`);
+                // console.log(`Video ${videoObj.position} (ID ${videoObj.vid_id}): skipped back to the beginning`);
                 videoObj.skipped = false;
                 if (!videoObj.finished) {
                     _videoMessageBoxElement.innerHTML = `<b><img src=${DASH_URL}> Video not yet finished <img src=${DASH_URL}></b>`;
@@ -300,7 +299,7 @@ async function init() {
                 videoObj.finished = true;
                 videoObj.watchCount = videoObj.watchCount + 1;
                 videoObj.endTimestamp = getUTCTimestampNow(includeMilliseconds = false);
-                console.log(`Set video @ pos ${videoObj.position} end time to ${videoObj.endTimestamp}`);
+                // console.log(`Set video @ pos ${videoObj.position} end time to ${videoObj.endTimestamp}`);
                 _videoMessageBoxElement.innerHTML = "<b>✅ Video finished ✅</b>";
             } else {
                 // There were skips
@@ -314,8 +313,8 @@ async function init() {
                 _selectionButtonElement.disabled = false;
                 _otherSelectionButtonElement.disabled = false;
             }
-            console.log(`Video ${videoObj.position} (ID ${videoObj.vid_id}): ended with ${videoObj.pauseCount} pause(s), watched ${videoObj.watchCount} time(s)`);
-            console.log(`Video ${videoObj.position} (ID ${videoObj.vid_id}): any skips? ${videoObj.skipped}`);
+            // console.log(`Video ${videoObj.position} (ID ${videoObj.vid_id}): ended with ${videoObj.pauseCount} pause(s), watched ${videoObj.watchCount} time(s)`);
+            // console.log(`Video ${videoObj.position} (ID ${videoObj.vid_id}): any skips? ${videoObj.skipped}`);
         })
         // videoPlayer.on('progress', (data) => {
         // //If the player percent is over 0.95, updateProgress to 100% and remove all listeners
@@ -354,7 +353,7 @@ async function uploadVideoSelection() {
         } else {
             selectedVideo = videoB;
         }
-        console.log(`User selected this video: ${selectedVideo.getLog()}`);
+        // console.log(`User selected this video: ${selectedVideo.getLog()}`);
 
         videoPageEndTime = getUTCTimestampNow(includeMilliseconds = false);
 

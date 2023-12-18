@@ -1,9 +1,7 @@
 //////// Constants/options ////////
 
-const server = "http://127.0.0.1:8000/c2c-retention-dce";
-//const server = "https://studies.mind.uci.edu/c2c-retention-dce";
+const server = "https://studies.mind.uci.edu/retention";
 
-// For any given video page: video A is on the left/top, video B is on the right/bottom
 const INTRO_VID_HTML_ID = "introVideo";
 const INTRO_VID_URL = "https://player.vimeo.com/video/653428289?h=c155f1e87b";
 
@@ -108,7 +106,7 @@ function createLogEntry(vimeo_data, data_label) {
 
         logEntry.data = `${_vimeo_seconds}sec/${_vimeo_percent_percent}%`;
     }
-    console.log(logEntry);
+    // console.log(logEntry);
     return logEntry;
 }
 
@@ -139,7 +137,7 @@ async function setupVideoPlayer() {
 
     // Initialize Vimeo player inside their respective VideoChoice objects
     introVid.player = new Vimeo.Player(iframe);
-    console.log(`Loaded Video A: ${introVid.getLog()}`);
+    // console.log(`Loaded intro video: ${introVid.getLog()}`);
     videoPageStartTime = getUTCTimestampNow(includeMilliseconds = false);
 
     function setupPlayerEvents(videoObj) {
@@ -236,7 +234,7 @@ async function uploadVideoSelection() {
             vid_id: introVid.vid_id,
         })
     }
-    console.log(introVid.logs);
+    // console.log(introVid.logs);
     const url = `${server}/intro_vid_info?key=${access_key}`;
     await fetch(url, requestOptions);
     window.location.href = `${server}/survey/videos?key=${access_key}&screen=1`;
