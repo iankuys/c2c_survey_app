@@ -39,7 +39,8 @@ def transform_logs(log_list: list[dict], max_string_size: int = 65535) -> str:
             log_strs.append(formatted_log_line)
     result = "\n".join(log_strs)
     if len(result) > max_string_size:
-        print(f"    Truncated logs string from {len(result)} to {max_string_size}")
+        print(f"    Truncated logs string from {
+              len(result)} to {max_string_size}")
         return result[:max_string_size]
     return result
 
@@ -88,17 +89,22 @@ class IntroPageIn(BaseModel):
 
 
 def debug_print_video_data_in(key: str, v: VideoPageIn) -> None:
-    print(f"User '{key}' ({v.user_agent}) finished a survey page - got {getsizeof(v)} bytes")
+    print(f"User '{
+          key}' ({v.user_agent}) finished a survey page - got {getsizeof(v)} bytes")
     print(
-        f"\tSelected video with ID '{v.selected_vid_id}' @ pos {v.selected_vid_position} (screen {v.screen})"
+        f"\tSelected video with ID '{
+            v.selected_vid_id}' @ pos {v.selected_vid_position} (screen {v.screen})"
     )
-    print(f"\tPage duration: from {v.screen_time_start} to {v.screen_time_end}")
+    print(f"\tPage duration: from {
+          v.screen_time_start} to {v.screen_time_end}")
     print(f"\tVideo A (left):")
-    print(f"\t\tWatched from {v.vidA_playback_time_start} - {v.vidA_playback_time_end}")
+    print(f"\t\tWatched from {
+          v.vidA_playback_time_start} - {v.vidA_playback_time_end}")
     print(f"\t\t{v.vidA_watch_count} play(s)")
     print(f"\t\tLogs: {v.vidA_logs}")
     print(f"\tVideo B (right):")
-    print(f"\t\tWatched from {v.vidB_playback_time_start} - {v.vidB_playback_time_end}")
+    print(f"\t\tWatched from {
+          v.vidB_playback_time_start} - {v.vidB_playback_time_end}")
     print(f"\t\t{v.vidB_watch_count} play(s)")
     print(f"\t\tLogs: {v.vidB_logs}")
 
@@ -113,7 +119,8 @@ async def get_video_choice(video_page_data: VideoPageIn, key: str | None = None)
             # Remove bounding single- or double-quotes from the selected video ID string
             video_page_data.selected_vid_id = video_page_data.selected_vid_id[1:-1]
 
-        logs.write_log(f"Uploading data for screen {video_page_data.screen}....", key, "api")
+        logs.write_log(f"Uploading data for screen {
+                       video_page_data.screen}....", key, "api")
         this_redcap_event = f"screen{video_page_data.screen}_arm_1"
 
         # If a user clicks the "Back" button in their browser, they could re-watch a screen
@@ -127,7 +134,8 @@ async def get_video_choice(video_page_data: VideoPageIn, key: str | None = None)
             "video_complete",
         ):
             logs.write_log(
-                f'Already had data for screen {video_page_data.screen}; REDCap event "{this_redcap_event}"',
+                f'Already had data for screen {
+                    video_page_data.screen}; REDCap event "{this_redcap_event}"',
                 key,
                 "api",
             )
@@ -157,9 +165,11 @@ async def get_video_choice(video_page_data: VideoPageIn, key: str | None = None)
         # print(json_sent_to_redcap)
 
         import_result = redcap_helpers.import_record(
-            secrets["C2C_DCV_API_TOKEN"], secrets["REDCAP_API_URL"], [redcap_video_page_record]
+            secrets["C2C_DCV_API_TOKEN"], secrets["REDCAP_API_URL"], [
+                redcap_video_page_record]
         )
-        logs.write_log(f"Uploaded {import_result} record(s) to REDCap", key, "api")
+        logs.write_log(
+            f"Uploaded {import_result} record(s) to REDCap", key, "api")
     else:
         print("No access key detected")
 
@@ -178,7 +188,8 @@ async def get_intro_info(video_page_data: IntroPageIn, key: str | None = None) -
             "single_video_complete",
         ):
             logs.write_log(
-                f'Already had data for intro video event "{intro_redcap_event}"', key, "api"
+                f'Already had data for intro video event "{
+                    intro_redcap_event}"', key, "api"
             )
             return
 
@@ -194,9 +205,11 @@ async def get_intro_info(video_page_data: IntroPageIn, key: str | None = None) -
         }
 
         import_result = redcap_helpers.import_record(
-            secrets["C2C_DCV_API_TOKEN"], secrets["REDCAP_API_URL"], [redcap_intro_page_record]
+            secrets["C2C_DCV_API_TOKEN"], secrets["REDCAP_API_URL"], [
+                redcap_intro_page_record]
         )
-        logs.write_log(f"Uploaded {import_result} record(s) to REDCap", key, "api")
+        logs.write_log(
+            f"Uploaded {import_result} record(s) to REDCap", key, "api")
     else:
         print("No access key detected")
 

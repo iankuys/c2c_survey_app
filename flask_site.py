@@ -29,8 +29,10 @@ BUBBLE_MESSAGES = {
     "bad_key": "Invalid key.",
     "missing_key": "Missing access key.",
     "v01": "Failed to load videos. Please try starting the survey again.",  # unused
-    "v02": "Failed to load videos. Please try starting the survey again.",  # missing "screen" URL param
-    "s01": "An error occured with loading the next page. Please contact UCI MIND IT and provide your access key.",  # Couldn't generate screen 3 due to missing video IDs
+    # missing "screen" URL param
+    "v02": "Failed to load videos. Please try starting the survey again.",
+    # Couldn't generate screen 3 due to missing video IDs
+    "s01": "An error occured with loading the next page. Please contact UCI MIND IT and provide your access key.",
     "survey_completed": "This survey has been completed. Thank you for your participation!",
     "unknown": "Unknown error.",
     "incomplete_outro": "Please answer every question to proceed.",
@@ -48,7 +50,8 @@ UNDEFINED_VID_ID_PLACEHOLDER = "UNDEFINED"
 if MAX_VIDEOS > len(VIDEOS):
     # Total number of videos to allocate should be <= the amount of videos in videos.json
     raise Exception(
-        f"Number of videos to allocate ({MAX_VIDEOS}) is greater than the number of videos that exist ({len(VIDEOS)}) in '{VIDEOS_FILE_PATH}'"
+        f"Number of videos to allocate ({MAX_VIDEOS}) is greater than the number of videos that exist ({
+            len(VIDEOS)}) in '{VIDEOS_FILE_PATH}'"
     )
 
 # CSV file containing 2 columns:
@@ -58,11 +61,13 @@ if MAX_VIDEOS > len(VIDEOS):
 ID_FILE = Path(PATH_TO_THIS_FOLDER, "content", "c2cv3-ids-access-keys.csv")
 
 # Used to sanitize ID input
-SUSPICIOUS_CHARS = [";", ":", "&", '"', "'", "`", ">", "<", "{", "}", "|", ".", "%"]
+SUSPICIOUS_CHARS = [";", ":", "&", '"', "'",
+                    "`", ">", "<", "{", "}", "|", ".", "%"]
 
 flask_app = Flask(__name__)
 # flask_app.config["APPLICATION_ROOT"] = URL_PREFIX
-flask_app.config.from_file("secrets.json", load=json.load)  # JSON keys must be in ALL CAPS
+# JSON keys must be in ALL CAPS
+flask_app.config.from_file("secrets.json", load=json.load)
 flask_app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 0
 
 
@@ -88,7 +93,8 @@ def create_id_mapping(id_file: Path = ID_FILE, reversed: bool = False) -> dict[s
                     mapping[row["access_key"]] = row["record_id"]
             except KeyError as k:
                 print(
-                    f"***** Configure the IDs CSV '{id_file}' to contain columns 'record_id' and 'access_key'."
+                    f"***** Configure the IDs CSV '{
+                        id_file}' to contain columns 'record_id' and 'access_key'."
                 )
                 raise k
     # print(mapping)
@@ -228,7 +234,8 @@ def index():
                 flask_app.config["REDCAP_API_URL"],
                 skipped_record,
             )
-            logs.write_log("elected to skip the survey; imported REDCap data", hashed_id, "index")
+            logs.write_log(
+                "elected to skip the survey; imported REDCap data", hashed_id, "index")
             return redirect(url_for("thankyou"), code=301)
 
         if already_finished_survey:
@@ -246,7 +253,8 @@ def index():
 
         already_started_survey = len(existing_dcv_video_data) > 0
         logs.write_log(
-            f"already started survey? {already_started_survey} (have {len(existing_dcv_video_data)} existing video instruments)",
+            f"already started survey? {already_started_survey} (have {len(
+                existing_dcv_video_data)} existing video instruments)",
             hashed_id,
             "index",
         )
@@ -274,7 +282,8 @@ def index():
                 max_screens=MAX_SCREENS,
             )
             logs.write_log(
-                f"Experiment record (C2C ID {ACCESS_KEYS_TO_C2C_IDS[hashed_id]}) already created with videos {survey_videos} and completed screen {most_recent_completed_screen_from_redcap}",
+                f"Experiment record (C2C ID {ACCESS_KEYS_TO_C2C_IDS[hashed_id]}) already created with videos {
+                    survey_videos} and completed screen {most_recent_completed_screen_from_redcap}",
                 hashed_id,
                 "index",
             )
@@ -311,7 +320,8 @@ def index():
                 survey_videos_index += 2
 
             logs.write_log(
-                f"Creating NEW record (C2C ID {ACCESS_KEYS_TO_C2C_IDS[hashed_id]}) with videos {survey_videos}",
+                f"Creating NEW record (C2C ID {ACCESS_KEYS_TO_C2C_IDS[hashed_id]}) with videos {
+                    survey_videos}",
                 hashed_id,
                 "index",
             )
@@ -364,7 +374,8 @@ def intro():
     # User visits this endpoint if they are a new survey participant
     if "key" in request.args and len(request.args["key"]) > 0:
         hashed_id = sanitize_key(request.args["key"])
-        logs.write_log("accessed, uploading initial intro data....", hashed_id, "intro")
+        logs.write_log(
+            "accessed, uploading initial intro data....", hashed_id, "intro")
         initial_intro_data = {
             "access_key": hashed_id,
             "redcap_event_name": "introscreen_arm_1",
@@ -411,7 +422,8 @@ def videos():
             vid_a_pos = (this_screen * 2) - 1
             vid_b_pos = this_screen * 2
             logs.write_log(
-                f"Starting screen {this_screen} (videos {vid_a_pos} & {vid_b_pos}) {this_screens_ids}",
+                f"Starting screen {this_screen} (videos {vid_a_pos} & {vid_b_pos}) {
+                    this_screens_ids}",
                 hashed_id,
                 "videos",
             )
@@ -448,7 +460,8 @@ def outro():
                 # POST request = page form has been completed and data will be uploaded
                 # print(request.form)
                 end_time = mindlib.timestamp_now()
-                logs.write_log("finished final questionnaire", hashed_id, "outro")
+                logs.write_log("finished final questionnaire",
+                               hashed_id, "outro")
 
                 redcap_outro_page_record = {
                     HASHED_ID_EXPERIMENT_REDCAP_VAR: hashed_id,
@@ -488,17 +501,21 @@ def outro():
             else:
                 # GET request = visiting this page in the web browser
                 logs.write_log("rendering questionnaire", hashed_id, "outro")
-                questions_path = Path(PATH_TO_THIS_FOLDER, "content", "q_questions.txt")
-                agree_choices_path = Path(PATH_TO_THIS_FOLDER, "content", "q_agree_choices.txt")
+                questions_path = Path(
+                    PATH_TO_THIS_FOLDER, "content", "q_questions.txt")
+                agree_choices_path = Path(
+                    PATH_TO_THIS_FOLDER, "content", "q_agree_choices.txt")
                 final_question_choices_path = Path(
                     PATH_TO_THIS_FOLDER, "content", "q_final_question_choices.txt"
                 )
 
                 with open(questions_path, "r") as questions_infile:
-                    questions = [line.strip() for line in questions_infile.readlines()]
+                    questions = [line.strip()
+                                 for line in questions_infile.readlines()]
 
                 with open(agree_choices_path, "r") as agree_choices_infile:
-                    agree_choices = [line.strip() for line in agree_choices_infile.readlines()]
+                    agree_choices = [line.strip()
+                                     for line in agree_choices_infile.readlines()]
 
                 with open(final_question_choices_path, "r") as final_choices_infile:
                     final_question_choices = [
@@ -513,7 +530,8 @@ def outro():
                     final_question_choices=final_question_choices,
                 )
         else:
-            logs.write_log("Already completed outro questionnaire", hashed_id, "outro")
+            logs.write_log(
+                "Already completed outro questionnaire", hashed_id, "outro")
             return redirect(url_for("thankyou"), code=301)
 
     return redirect(url_for("index", msg="missing_key"), code=301)
