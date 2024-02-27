@@ -1,6 +1,5 @@
 import csv
 import json
-import random
 import urllib.parse
 from pathlib import Path
 
@@ -10,6 +9,7 @@ from flask import Flask, redirect, render_template, request, url_for
 import logs
 import mindlib
 import redcap_helpers
+import secrets
 
 FLASK_APP_URL_PATH = "/retention/survey"
 
@@ -285,7 +285,7 @@ def index():
             # New survey participant
             # Shuffle all video keys, and save the first survey from the shuffled list
             video_ids = list(VIDEOS.keys())
-            random.shuffle(video_ids)
+            secrets.SystemRandom().shuffle(video_ids)
             survey_videos = video_ids[0:MAX_VIDEOS]
 
             start_time = mindlib.timestamp_now()
