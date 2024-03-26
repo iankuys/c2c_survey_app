@@ -112,8 +112,7 @@ def sanitize_key(key_from_html_string: str) -> str:
     result = urllib.parse.unquote_plus(key_from_html_string).strip()
     # Hashed IDs MUST be of a pre-specified length - anything else is suspicious.
     if len(result) == EXPECTED_HASHED_ID_LENGTH and not any(
-        [s in result for s in SUSPICIOUS_CHARS]
-    ):
+        s in result for s in SUSPICIOUS_CHARS):
         return result
     return ""
 
