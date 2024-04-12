@@ -1,6 +1,7 @@
 import json
 
 import requests
+from typing import Optional
 
 
 class REDCapError(Exception):
@@ -329,12 +330,13 @@ def check_event_for_prefilled_data(
     recordid: str,
     event: str,
     instrument_complete_field_name: str,
-    extra_fields: list[str] = [],
+    extra_fields: Optional[list[str]] = None,
 ) -> bool:
     """Checks the built-in REDCap "instrument_complete" field to see if a particular event was already completed.
     Returns True if the specified REDCap event has been completed.
     Returns False by default.
     """
+    extra_fields = [] if extra_fields is None else extra_fields
     request_params = {
         "token": token,
         "content": "record",

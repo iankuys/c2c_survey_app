@@ -3,6 +3,7 @@ import re
 import time
 from datetime import datetime, timedelta
 from pathlib import Path
+from typing import Optional
 
 # Starting with any number of alphanumeric characters (and '.', '+', '_', '-')
 #   followed by a single '@'
@@ -48,7 +49,7 @@ def create_readable_timestamp(compact_timestamp: str, minutes_to_add: int = 0) -
 
 def json_to_dict(
     path_to_json_file: Path | str,
-    required_fields: set[str] = set(),
+    required_fields: Optional[set[str]] = None,
     only_required_fields: bool = False,
 ) -> dict:
     """Loads a json file into a dict.
@@ -59,6 +60,7 @@ def json_to_dict(
     If `only_required_fields` is True, an error will raised if any extra fields are found that are _not_ in
     `required_fields`.
     """
+    required_fields = set() if required_fields is None else required_fields
     if type(path_to_json_file) == str:
         path_to_json_file = Path(path_to_json_file)
     if not path_to_json_file.exists() or not path_to_json_file.is_file():
