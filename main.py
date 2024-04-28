@@ -93,11 +93,11 @@ def debug_print_video_data_in(key: str, v: VideoPageIn) -> None:
         f"\tSelected video with ID '{v.selected_vid_id}' @ pos {v.selected_vid_position} (screen {v.screen})"
     )
     print(f"\tPage duration: from {v.screen_time_start} to {v.screen_time_end}")
-    print(f"\tVideo A (left):")
+    print("\tVideo A (left):")
     print(f"\t\tWatched from {v.vidA_playback_time_start} - {v.vidA_playback_time_end}")
     print(f"\t\t{v.vidA_watch_count} play(s)")
     print(f"\t\tLogs: {v.vidA_logs}")
-    print(f"\tVideo B (right):")
+    print("\tVideo B (right):")
     print(f"\t\tWatched from {v.vidB_playback_time_start} - {v.vidB_playback_time_end}")
     print(f"\t\t{v.vidB_watch_count} play(s)")
     print(f"\t\tLogs: {v.vidB_logs}")
