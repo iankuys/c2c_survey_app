@@ -22,7 +22,7 @@ def export_redcap_report(token: str, url: str, report_id: str | int) -> list[dic
         "exportCheckboxLabel": "false",
         "returnFormat": "json",
     }
-    r = requests.post(url, data=request_params)
+    r = requests.post(url, data=request_params, timeout=60)
     # print('>>> HTTP Status: ' + str(r.status_code))
     result = json.loads(r.text)
     if type(result) == dict and "error" in result:
@@ -46,7 +46,7 @@ def import_record(token: str, url: str, records: list[dict]) -> int:
         "returnContent": "count",
         "returnFormat": "json",
     }
-    r = requests.post(url, data=request_params)
+    r = requests.post(url, data=request_params, timeout=60)
     # print(">>> HTTP Status: " + str(r.status_code))
     result = json.loads(r.text)
     if type(result) == dict:
@@ -84,7 +84,7 @@ def export_video_ids(token: str, url: str, recordid: str, maxScreens: int) -> li
     for screen in range(maxScreens):
         request_params[f"events[{screen}]"] = f"screen{screen+1}_arm_1"
 
-    r = requests.post(url, data=request_params)
+    r = requests.post(url, data=request_params, timeout=60)
     result = json.loads(r.text)
     if type(result) == dict:
         if "error" in result:
@@ -115,7 +115,7 @@ def export_dcv_video_data(token: str, url: str, recordid: str, maxScreens: int) 
     for screen in range(maxScreens):
         request_params[f"events[{screen}]"] = f"screen{screen+1}_arm_1"
 
-    r = requests.post(url, data=request_params)
+    r = requests.post(url, data=request_params, timeout=60)
     result = json.loads(r.text)
     if type(result) == dict:
         if "error" in result:
@@ -209,7 +209,7 @@ def get_most_recent_screen(
         # Modify request params to only fetch screen events
         request_params[f"events[{screen}]"] = f"screen{screen+1}_arm_1"
 
-    r = requests.post(url, data=request_params)
+    r = requests.post(url, data=request_params, timeout=60)
     result = json.loads(r.text)
     if type(result) == dict:
         if "error" in result:
@@ -264,7 +264,7 @@ def captured_user_agent(token: str, url: str, recordid: str) -> bool:
         "exportDataAccessGroups": "false",
         "returnFormat": "json",
     }
-    r = requests.post(url, data=request_params)
+    r = requests.post(url, data=request_params, timeout=60)
     # print('>>> HTTP Status: ' + str(r.status_code))
     result = json.loads(r.text)
     if type(result) == dict and "error" in result:
@@ -302,7 +302,7 @@ def user_completed_survey(token: str, url: str, recordid: str) -> bool:
         "exportDataAccessGroups": "false",
         "returnFormat": "json",
     }
-    r = requests.post(url, data=request_params)
+    r = requests.post(url, data=request_params, timeout=60)
     # print('>>> HTTP Status: ' + str(r.status_code))
     result = json.loads(r.text)
     if type(result) == dict and "error" in result:
@@ -357,7 +357,7 @@ def check_event_for_prefilled_data(
     for i, field in enumerate(extra_fields, start=2):
         request_params[f"fields[{i}]"] = field
 
-    r = requests.post(url, data=request_params)
+    r = requests.post(url, data=request_params, timeout=60)
     result = json.loads(r.text)
     if type(result) == dict:
         if "error" in result:
